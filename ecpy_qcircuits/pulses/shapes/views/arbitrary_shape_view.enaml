@@ -1,0 +1,37 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2016 by EcpyPulses Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""View for the SquareShape.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+from enaml.layout.api import hbox, vbox, align
+from enaml.widgets.api import (Label, GroupBox, SplitItem, Splitter, MultilineField)
+
+from ecpy.utils.widgets.qt_completers import QtLineCompleter
+from ecpy.tasks.api import EVALUATER_TOOLTIP
+
+from ecpy_pulses.pulses.shapes.views.base_shape_view import AbstractShapeView
+
+enamldef ArbitraryShapeView(AbstractShapeView):
+    """ View for an arbitrary pulse.
+
+    """
+    attr item
+    attr shape
+
+    GroupBox:
+        constraints = [hbox(formula_lab, formula_val),
+                       align('v_center', formula_lab, formula_val)]
+
+        Label: formula_lab:
+            text = 'Formula'
+        MultilineField: formula_val:
+            text := shape.formula
