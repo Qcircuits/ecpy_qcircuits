@@ -28,13 +28,14 @@ from ...base_instr_view import InstrView
 enamldef DemodAlazarView(InstrView): view:
 
     constraints = [vbox(
-                    grid([instr_label, traces, buffer, average,
+                    grid([instr_label, traces, buffer, average, averaging,
                           trigRange, trigLevel],
                          [instr_selection, traces_val, buffer_val,
-                          average_val, trigRange_val, trigLevel_val]),
+                          average_val, averaging, trigRange_val, trigLevel_val]),
                     hbox(demodA,demodB),
                     hbox(traceA,traceB)),
                     traces_val.width == buffer_val.width,
+                    averaging.width == traces_val.width,
                     demodA.width == demodB.width,
                     traceA.width == traceB.width]
 
@@ -52,6 +53,14 @@ enamldef DemodAlazarView(InstrView): view:
         text = 'Average'
     CheckBox: average_val:
         checked := task.average
+
+    Container: averaging:     
+        Conditional:
+            condition << average_val.checked
+            Label:
+                text = 'Number of points'
+            Field:
+                text := task.Npoints
 
     Label: trigRange:
         text = 'Trigger range (V)'

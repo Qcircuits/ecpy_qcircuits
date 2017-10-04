@@ -58,6 +58,8 @@ class DemodAlazarTask(InstrumentTask):
     tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
+    
+    Npoints = Unicode('0').tag(pref=True,feval=VAL_INT)
 
     IQtracemode = Bool(False).tag(pref=True)
 
@@ -208,7 +210,8 @@ class DemodAlazarTask(InstrumentTask):
         answerDemod, answerTrace = self.driver.get_demod(startaftertrig, duration,
                                        recordsPerCapture, recordsPerBuffer,
                                        timestep, freq, self.average,
-                                       NdemodA, NdemodB, NtraceA, NtraceB)
+                                       NdemodA, NdemodB, NtraceA, NtraceB, 
+                                       self.Npoints)
 
         self.write_in_database('Demod', answerDemod)
         self.write_in_database('Trace', answerTrace)

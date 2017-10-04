@@ -191,7 +191,8 @@ class Alazar935x(DllInstrument):
                                  0)
 
     def get_demod(self, startaftertrig, duration, recordsPerCapture,
-                  recordsPerBuffer, timestep, freq, average, NdemodA, NdemodB, NtraceA, NtraceB):
+                  recordsPerBuffer, timestep, freq, average, NdemodA, NdemodB,
+                  NtraceA, NtraceB, Npoints):
 
         board = ats.Board()
 
@@ -384,8 +385,19 @@ class Alazar935x(DllInstrument):
             answerTypeTrace = 'f'
             biggerTrace = 0
 
-        if average:
+        if (average and Npoints == 0.0):
             answerDemod = np.zeros(1, dtype=answerTypeDemod)
+        elif average:
+            answerDemod = np.zeros((1, Npoints), dtype=answerTypeDemod)
+        else:
+            answerDemod = np.zeros((recordsPerCapture, 1), dtype=answerTypeDemod)
+
+
+        if average:
+            if Npoints == 0.0:
+                answerDemod = np.zeros(1, dtype=answerTypeDemod)
+            else:
+                answerDemod = np.zeros((1, Npoints), dtype=answerTypeDemod)
             answerTrace = np.zeros(biggerTrace, dtype=answerTypeTrace)
         else:
             answerDemod = np.zeros(recordsPerCapture, dtype=answerTypeDemod)
@@ -404,7 +416,7 @@ class Alazar935x(DllInstrument):
                 index = str(i-NdemodA).zfill(zerosDemod)
             zerosStep = 1 + int(np.floor(np.log10(Nstep[i])))
             angle = 2 * np.pi * freq[i] * startSample[i] / samplesPerSec
-            if average:
+            if (average and Npoints == 0.0):
                 data[i] = np.mean(data[i], axis=0)
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(Nstep[i], -1), axis=1)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(Nstep[i], -1), axis=1)
@@ -415,6 +427,19 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[j] * np.cos(angle) - ansQ[j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[j] * np.sin(angle) + ansQ[j] * np.cos(angle)
+            elif average:
+                data[i] = data[i].reshape(recordsPerCapture/Npoints,Npoints,samplesPerBlock[i])
+                data[i] = np.mean(data[i], axis=0)
+                ansI = 2 * np.mean((data[i]*coses[i]).reshape(Npoints,Nstep[i],-1), axis=2)
+                ansQ = 2 * np.mean((data[i]*sines[i]).reshape(Npoints,Nstep[i],-1), axis=2)
+                for j in range(Nstep[i]):
+                    if Nstep[i]>1:
+                        iindex = index + '_' + str(j).zfill(zerosStep)
+                    else:
+                        iindex = index
+                    answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[j] * np.sin(angle)
+                    answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[j] * np.cos(angle)
+            
             else:
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(recordsPerCapture, Nstep[i], -1), axis=2)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(recordsPerCapture, Nstep[i], -1), axis=2)
