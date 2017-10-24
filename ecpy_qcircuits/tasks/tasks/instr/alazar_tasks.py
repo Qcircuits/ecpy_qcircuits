@@ -166,6 +166,8 @@ class DemodAlazarTask(InstrumentTask):
 
         recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         recordsPerBuffer = int(self.format_and_eval_string(self.tracesbuffer))
+		
+        Npoints = self.format_and_eval_string(self.Npoints)
 
         timeA = self.format_string(self.timeaftertrig, 10**-9, 1)
         durationA = self.format_string(self.duration, 10**-9, 1)
@@ -211,7 +213,7 @@ class DemodAlazarTask(InstrumentTask):
                                        recordsPerCapture, recordsPerBuffer,
                                        timestep, freq, self.average,
                                        NdemodA, NdemodB, NtraceA, NtraceB, 
-                                       self.Npoints)
+                                       Npoints)
 
         self.write_in_database('Demod', answerDemod)
         self.write_in_database('Trace', answerTrace)
