@@ -354,7 +354,7 @@ class Alazar935x(DllInstrument):
 
         if (NdemodA or NdemodB):
             answerTypeDemod = []
-            Nstep = [(samplesPerDemod[i]/int(samplesPerSec*timestep[i]) if timestep[i] else 1) for i in range(NdemodA+NdemodB)]
+            Nstep = [int((samplesPerDemod[i]/int(samplesPerSec*timestep[i])) if timestep[i] else 1) for i in range(NdemodA+NdemodB)]
             for i in range(NdemodA+NdemodB):
                 if i<NdemodA:
                     chanLetter = 'A'
