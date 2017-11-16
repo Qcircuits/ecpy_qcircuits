@@ -316,13 +316,15 @@ class ENAGetTracesTask(InstrumentTask):
 
     """
 
-    tracelist = Unicode('1,1').tag(pref=True, feval=FEVAL)
+    #tracelist = Unicode('1,1').tag(pref=True, feval=FEVAL)
+    tracelist = Unicode('1,1').tag(pref=True)
     already_measured = Bool(False).tag(pref=True)
-
+    
     database_entries = set_default({'sweep_data': {}})
 
     def perform(self):
         traces = self.tracelist.split(';')
+
         if not self.driver:
             self.start_driver()
 
@@ -375,8 +377,8 @@ class ENAGetTracesTask(InstrumentTask):
         """
         """
         test, traceback = super(ENAGetTracesTask, self).check(*args, **kwargs)
-
         traces = self.tracelist.split(';')
+
         sweep_data = {}
         for trace in traces:
             data = [np.array([0.0, 1.0]), np.array([1.0, 2.0])]

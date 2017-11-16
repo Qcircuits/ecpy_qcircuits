@@ -98,7 +98,7 @@ class KeysightENAChannel(BaseInstrument):
             data = self._pna.ask_for_values(data_request, double)
 
         else:
-            data = self._pna.ask_for_values(data_request, ascii)
+            data = self._pna.query_ascii_values(data_request, ascii)
 
         if data:
             return np.array(data)
@@ -159,31 +159,30 @@ class KeysightENAChannel(BaseInstrument):
         """
         self._pna.write(':TRIG:SOUR BUS')
         self._pna.write(':INIT1:CONT ON')
-        self._pna.write(':TRIG:SING')
 
         self._pna.clear_averaging()
-        self._pna.timeout = 10
+        self._pna.timeout = 100
 
         if aver_count:
             self.average_count = aver_count
-
+            
         self.average_state = 1
 
         for i in range(0,int(self.average_count)):
             self._pna.write(':TRIG:SING')
-
+                
             while True:
                 try:
-                    done = self._pna.ask_for_values('*OPC?')[0]
+                    done = self._pna.ask('*OPC?')[1]
                     break
                 except Exception:
                     self._pna.timeout = self._pna.timeout*2
                     logger = logging.getLogger(__name__)
-                    msg = cleandoc('''ENA timeout increased to {} s
+                    msg = cleandoc('''ENA timeout increased to {} ms
                         This will make the ENA diplay 420 error w/o issue''')
                     logger.info(msg.format(self._pna.timeout))
 
-            if done != 1:
+            if done != '1':
                 raise InstrError(cleandoc('''Agilent ENA did could  not perform
                 the average on channel {} '''.format(self._channel)))
 
@@ -420,19 +419,20 @@ class KeysightENAChannel(BaseInstrument):
         """
         sweep_type = self.sweep_type
         sweep_points = self.sweep_points
-        if sweep_type == 'LIN':
+        
+        if sweep_type[:-1] == 'LIN':
             sweep_start = self._pna.ask_for_values(
                 'SENSe{}:FREQuency:STARt?'.format(self._channel))[0]*1e-9
             sweep_stop = self._pna.ask_for_values(
                 'SENSe{}:FREQuency:STOP?'.format(self._channel))[0]*1e-9
             return np.linspace(sweep_start, sweep_stop, sweep_points)
-        elif sweep_type == 'POW':
+        elif sweep_type[:-1] == 'POW':
             sweep_start = self._pna.ask_for_values('SOURce{}:POWer:STARt?' \
                 .format(self._channel))[0]
             sweep_stop = self._pna.ask_for_values('SOURce{}:POWer:STOP?' \
                 .format(self._channel))[0]
             return np.linspace(sweep_start, sweep_stop, sweep_points)
-        elif sweep_type == 'LOG':
+        elif sweep_type[:-1] == 'LOG':
             sweep_start = self._pna.ask_for_values('SENSe{}:FREQuency:STARt?' \
                 .format(self._channel))[0]*1e-9
             sweep_stop = self._pna.ask_for_values('SENSe{}:FREQuency:STOP?' \
@@ -634,7 +634,7 @@ class KeysightENAChannel(BaseInstrument):
     def average_state(self):
         """
         """
-        state = self._pna.ask('SENSe{}:AVERage:STATe?'.format(self._channel))
+        state = self._pna.ask_for_values('SENSe{}:AVERage:STATe?'.format(self._channel))
         if state:
             return bool(state)
         else:
@@ -648,8 +648,7 @@ class KeysightENAChannel(BaseInstrument):
         """
         self._pna.write('SENSe{}:AVERage:STATe {}'.format(self._channel,
                         value))
-        result = self._pna.ask('SENSe{}:AVERage:STATe?'.format(self._channel))
-
+        result = self._pna.ask_for_values('SENSe{}:AVERage:STATe?'.format(self._channel))
         if bool(result) != value:
             raise InstrIOError(cleandoc('''PNA did not set correctly the
                 channel {} average state'''.format(self._channel)))
@@ -659,10 +658,10 @@ class KeysightENAChannel(BaseInstrument):
     def average_count(self):
         """
         """
-        count = self._pna.ask_for_values('SENSe{}:AVERage:COUNt?'.format(
+        count = self._pna.ask('SENSe{}:AVERage:COUNt?'.format(
                                          self._channel))
         if count:
-            return count[0]
+            return count[1:]
         else:
             raise InstrIOError(cleandoc('''Agilent PNA did not return the
                     channel {} average count'''.format(self._channel)))
