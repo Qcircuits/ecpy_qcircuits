@@ -428,7 +428,7 @@ class Alazar935x(DllInstrument):
                     answerDemod[chanLetter + 'I' + iindex] = ansI[j] * np.cos(angle) - ansQ[j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[j] * np.sin(angle) + ansQ[j] * np.cos(angle)
             elif average:
-                data[i] = data[i].reshape(recordsPerCapture/Npoints,Npoints,samplesPerBlock[i])
+                data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,samplesPerBlock[i])
                 data[i] = np.mean(data[i], axis=0)
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(Npoints,Nstep[i],-1), axis=2)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(Npoints,Nstep[i],-1), axis=2)
