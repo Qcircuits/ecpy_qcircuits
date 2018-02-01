@@ -26,6 +26,7 @@ from textwrap import fill
 from inspect import cleandoc
 import re
 import time
+import numpy as np
 
 
 class TaborAWGChannel(BaseInstrument):
@@ -36,6 +37,8 @@ class TaborAWGChannel(BaseInstrument):
                                          caching_permissions)
         self._AWG = AWG
         self._channel = channel_num
+        AWG.write_termination = '\n'
+        AWG.read_termination = '\n'
 
     def reopen_connection(self):
         self._AWG.reopen_connection()
@@ -121,7 +124,9 @@ class TaborAWG(VisaInstrument):
                                   caching_permissions, auto_open)
         self.channels = {}
         self.lock = Lock()
-
+        self.write_termination = '\n'
+        self.read_termination = '\n'
+        
     def get_channel(self, num):
         """
         """
@@ -140,12 +145,10 @@ class TaborAWG(VisaInstrument):
         """Command to send to the instrument. waveform = string of a bytearray
 
         """
-        numbyte = len(waveform)
         self.write('INST {}'.format(ch_id))
         self.write('TRAC:MODE SING')
-        numApresDiese = len('{}'.format(numbyte))
-        header = "TRAC#{}{}".format(numApresDiese, numbyte)
-        self.write('{}{}'.format(header, waveform))
+        header = "TRAC"
+        self._driver.write_binary_values(header, waveform, datatype='B')
 
     @instrument_property
     @secure_communication()

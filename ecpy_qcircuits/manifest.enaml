@@ -45,7 +45,8 @@ enamldef QcircuitsManifest(PluginManifest):
                         kind = 'AWG'
                         connections = {'VisaGPIB': {'resource_class': 'INSTR'},
                                        'VisaUSB': {'resource_class': 'INSTR'},
-                                       'VisaTCPIP': {'resource_class': 'INSTR'}
+                                       'VisaTCPIP': {'resource_class': 'INSTR'},
+                                       'VisaRaw': {}
                                        }
                 Drivers:
                     manufacturer = 'Keysight'

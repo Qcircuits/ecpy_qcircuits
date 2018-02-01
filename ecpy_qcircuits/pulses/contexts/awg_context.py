@@ -11,17 +11,12 @@
 """
 from __future__ import (division, unicode_literals, print_function,
                         absolute_import)
-import sys
 
 import numpy as np
 from atom.api import Unicode, Float, Bool, set_default
 
 from ecpy_pulses.pulses.api import BaseContext, TIME_CONVERSION
 
-if sys.version_info >= (3,):
-    to_bytes = np.ndarray.tobytes
-else:
-    to_bytes = lambda x: bytearray(np.ndarray.tobytes(x))
 
 
 class TaborAWGContext(BaseContext):
@@ -130,7 +125,7 @@ class TaborAWGContext(BaseContext):
 
             if channeltype == 'A' and pulse.kind == 'Analogical':
                 array_analog[channel][start_index:stop_index] +=\
-                    np.require(np.rint(8191*waveform), np.uint16)
+                    (np.rint(8191*waveform)).astype(np.uint16)
             elif channeltype == 'M1' and pulse.kind == 'Logical':
                 array_M1[channel][start_index:stop_index] += waveform
             elif channeltype == 'M2' and pulse.kind == 'Logical':
@@ -140,8 +135,8 @@ class TaborAWGContext(BaseContext):
                 return (False, dict(),
                         {'Kind issue': msg.format(pulse.index,
                                                   (pulse.kind, pulse.channel))}
-                        )
-
+                       )
+        
         # Check the overflows
         traceback = {}
         for channel in used_channels:
@@ -179,24 +174,22 @@ class TaborAWGContext(BaseContext):
             aux = np.empty(2*sequence_length, dtype=np.uint8)
             aux[::2] = array % 2**8
             aux[1::2] = array // 2**8
-            to_send[int(channel[-1])] = to_bytes(aux)
+            to_send[int(channel[-1])] = np.ndarray.tobytes(aux)
 
         # Build sequence infos
-        name = self._cache['sequence_name']
         infos = dict(sampling_frequency=self.sampling_frequency,
                      sequence_ch1='',
                      sequence_ch2='',
                      sequence_ch3='',
                      sequence_ch4='')
         for c in used_channels:
-            infos['sequence_ch%s' % c[2]] = name + '_' + c
+            infos['sequence_ch%s' % c[2]] = c
 
         # In the absence of a driver we stop here
         if not driver:
             return True, infos, traceback
 
         # If we do have a driver proceed to the transfer.
-
         return self._transfer_sequences(driver, to_send, infos)
 
     def list_sequence_infos(self):
@@ -226,23 +219,7 @@ class TaborAWGContext(BaseContext):
         """
         for ch_id in driver.defined_channels:
             if ch_id in sequences:
-                driver.to_send(infos['sequence_ch%s' % ch_id],
-                               sequences[ch_id])
-
-        if self.select_after_transfer:
-            driver.sampling_frequency = self.sampling_frequency
-            for ch_id in driver.defined_channels:
-                ch = driver.get_channel(ch_id)
-                if ch_id in sequences:
-                    ch.select_sequence(infos['sequence_ch%s' % ch_id])
-                elif self.clear_unused_channels:
-                    ch.clear_sequence()
-
-        if self.run_after_transfer:
-            for ch_id in sequences:
-                ch = driver.get_channel(ch_id)
-                ch.output_state = 'ON'
-            driver.running = True
+                driver.to_send(sequences[ch_id], ch_id)
 
         return True, infos, {}
 
