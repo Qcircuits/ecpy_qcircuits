@@ -396,9 +396,11 @@ class Alazar935x(DllInstrument):
         if average:
             if Npoints == 0.0:
                 answerDemod = np.zeros(1, dtype=answerTypeDemod)
+                answerTrace = np.zeros(biggerTrace, dtype=answerTypeTrace)
+
             else:
                 answerDemod = np.zeros((1, Npoints), dtype=answerTypeDemod)
-            answerTrace = np.zeros(biggerTrace, dtype=answerTypeTrace)
+                answerTrace = np.zeros((Npoints,biggerTrace), dtype=answerTypeTrace)
         else:
             answerDemod = np.zeros(recordsPerCapture, dtype=answerTypeDemod)
             answerTrace = np.zeros((recordsPerCapture, biggerTrace), dtype=answerTypeTrace)
@@ -457,7 +459,11 @@ class Alazar935x(DllInstrument):
             else:
                 Tracestring = 'B' + str(i-NdemodA-NdemodB-NtraceA).zfill(zerosTraceB)
             if average:
-                answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
+                if Npoints==0:
+                    answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
+                else:
+                    data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,biggerTrace)
+                    answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
             else:
                 answerTrace[Tracestring][:,:samplesPerDemod[i]] = data[i]
 
