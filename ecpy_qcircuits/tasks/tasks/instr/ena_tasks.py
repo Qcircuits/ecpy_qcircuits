@@ -362,7 +362,7 @@ class ENAGetTracesTask(InstrumentTask):
             raise ValueError(cleandoc('''The trace {} does not exist on channel
                                       {}: '''.format(tracenb, channelnb)))
 
-        measname = channel_driver.selected_measure
+        measname = [channelnb,tracenb]
         data = channel_driver.sweep_x_axis
         complexdata = channel_driver.read_raw_data(measname)* \
                 np.exp(2*np.pi*1j*data*channel_driver.electrical_delay)
