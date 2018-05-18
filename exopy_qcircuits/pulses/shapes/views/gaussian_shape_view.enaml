@@ -1,0 +1,81 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2016 by ExopyPulses Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""View for the SquareShape.
+
+"""
+from enaml.layout.api import hbox, vbox, align
+from enaml.widgets.api import (Label, GroupBox, SplitItem, Splitter, Container)
+
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.tasks.api import EVALUATER_TOOLTIP
+
+from exopy_pulses.pulses.shapes.views.base_shape_view import AbstractShapeView
+
+enamldef GaussianShapeView(AbstractShapeView):
+    """ View for a gaussian pulse.
+
+    """
+    attr item
+    attr shape
+
+    GroupBox:
+        title = 'Gaussian'
+        Splitter: spl:
+            SplitItem:
+                Container:
+                    constraints = [hbox(amp_lab, amp_val),
+                       align('v_center', amp_lab, amp_val)]
+                    Label: amp_lab:
+                        text = 'amplitude'
+                    QtLineCompleter: amp_val:
+                        hug_width = 'ignore'
+                        text := shape.amplitude
+                        tool_tip = 'Relative amplitude of the pulse (should be between -1.0 and 1.0)'
+            SplitItem:
+                Container:
+                    constraints << [hbox(width_lab, width_val),
+                                    align('v_center', width_lab, width_val)]
+                    Label: width_lab:
+                        text = 'Width'
+                    QtLineCompleter: width_val:
+                        text := shape.width
+                        entries_updater = item.parent.get_accessible_vars
+                        tool_tip = 'Standard deviation of the gaussian (not FWHM)'
+
+
+enamldef GaussianEdgeShapeView(AbstractShapeView):
+    """ View for a gaussian edge pulse.
+
+    """
+    attr item
+    attr shape
+
+    GroupBox:
+        title = 'Gaussian Edge'
+        Splitter: spl:
+            SplitItem:
+                Container:
+                    constraints = [hbox(amp_lab, amp_val),
+                       align('v_center', amp_lab, amp_val)]
+                    Label: amp_lab:
+                        text = 'amplitude'
+                    QtLineCompleter: amp_val:
+                        hug_width = 'ignore'
+                        text := shape.amplitude
+                        tool_tip = 'Relative amplitude of the pulse (should be between -1.0 and 1.0)'
+            SplitItem:
+                Container:
+                    constraints << [hbox(width_lab, width_val),
+                                    align('v_center', width_lab, width_val)]
+                    Label: width_lab:
+                        text = 'Edge Width'
+                    QtLineCompleter: width_val:
+                        text := shape.edge_width
+                        entries_updater = item.parent.get_accessible_vars
+                        tool_tip = 'Gaussian rising/folding time FWHM (not stand. dev.)'
