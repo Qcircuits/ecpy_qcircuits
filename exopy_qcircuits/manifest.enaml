@@ -84,6 +84,20 @@ enamldef QcircuitsManifest(PluginManifest):
                     task = 'ena_tasks:ENAGetTracesTask'
                     view = 'views.ena_views:ENAGetTracesView'
                     instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
+                Task:
+                    task = 'transfer_pulse_loop_task:TransferPulseLoopTask'
+                    view = ('views.transfer_pulse_loop_task_view:'
+                            'TransferPulseLoopView')
+                    # Way to declare instrument dependencies without specifying
+                    # any instrument.
+                    instruments = [None]
+                Task:
+                    task = 'transfer_awg_file_task:TransferAWGFileTask'
+                    view = ('views.transfer_awg_file_task_view:'
+                            'TransferAWGFileView')
+                    # Way to declare instrument dependencies without specifying
+                    # any instrument.
+                    instruments = [None]
 
     Extension:
         id = 'contexts'
