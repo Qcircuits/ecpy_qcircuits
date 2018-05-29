@@ -12,6 +12,7 @@
 import logging
 from inspect import cleandoc
 import numpy as np
+import time
 
 try:
     from visa import ascii, single, double
@@ -156,24 +157,26 @@ class KeysightENAChannel(BaseInstrument):
         """
         self._pna.write(':TRIG:SOUR BUS')
         self._pna.write(':INIT1:CONT ON')
-
+        swptime = self._pna.ask_for_values('sense{}:sweep:time?'.format(self._channel))[0]
+        
         self._pna.clear_averaging()
-        self._pna.timeout = 100
-
+        self._pna.timeout = 100 + swptime*1000
+        
+        
         if aver_count:
             self.average_count = aver_count
-
+            
         self.average_state = 1
 
         for i in range(0,int(self.average_count)):
             self._pna.write(':TRIG:SING')
-
+            time.sleep(swptime*0.5)
             while True:
                 try:
                     done = self._pna.ask('*OPC?')[1]
                     break
                 except Exception:
-                    self._pna.timeout = self._pna.timeout*2
+                    self._pna.timeout = self._pna.timeout*1.1
                     logger = logging.getLogger(__name__)
                     msg = cleandoc('''ENA timeout increased to {} ms
                         This will make the ENA diplay 420 error w/o issue''')
@@ -416,7 +419,7 @@ class KeysightENAChannel(BaseInstrument):
         """
         sweep_type = self.sweep_type
         sweep_points = self.sweep_points
-
+        
         if sweep_type[:-1] == 'LIN':
             sweep_start = self._pna.ask_for_values(
                 'SENSe{}:FREQuency:STARt?'.format(self._channel))[0]*1e-9

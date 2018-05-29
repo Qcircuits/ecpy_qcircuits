@@ -26,25 +26,25 @@ class DemodAlazarTask(InstrumentTask):
     """ Get the raw or averaged quadratures of the signal.
         Can also get raw or averaged traces of the signal.
     """
-    freq = Unicode('50').tag(pref=True, feval=VAL_REAL)
+    freq = Unicode('50').tag(pref=True)
 
-    freqB = Unicode('50').tag(pref=True, feval=VAL_REAL)
+    freqB = Unicode('50').tag(pref=True)
 
-    timeaftertrig = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    timeaftertrig = Unicode('0').tag(pref=True)
 
-    timeaftertrigB = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    timeaftertrigB = Unicode('0').tag(pref=True)
 
-    timestep = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    timestep = Unicode('0').tag(pref=True)
 
-    timestepB = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    timestepB = Unicode('0').tag(pref=True)
 
     tracetimeaftertrig = Unicode('0').tag(pref=True, feval=VAL_REAL)
 
     tracetimeaftertrigB = Unicode('0').tag(pref=True, feval=VAL_REAL)
 
-    duration = Unicode('1000').tag(pref=True, feval=VAL_REAL)
+    duration = Unicode('1000').tag(pref=True)
 
-    durationB = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    durationB = Unicode('0').tag(pref=True)
 
     traceduration = Unicode('0').tag(pref=True)
 

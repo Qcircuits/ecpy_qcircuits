@@ -14,6 +14,9 @@
 Visual C++ runtime needs to be installed to be able to load the dll.
 
 """
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
 import sys
 from subprocess import call
 import ctypes
@@ -393,9 +396,11 @@ class Alazar935x(DllInstrument):
         if average:
             if Npoints == 0.0:
                 answerDemod = np.zeros(1, dtype=answerTypeDemod)
+                answerTrace = np.zeros(biggerTrace, dtype=answerTypeTrace)
+
             else:
                 answerDemod = np.zeros((1, Npoints), dtype=answerTypeDemod)
-            answerTrace = np.zeros(biggerTrace, dtype=answerTypeTrace)
+                answerTrace = np.zeros((Npoints,biggerTrace), dtype=answerTypeTrace)
         else:
             answerDemod = np.zeros(recordsPerCapture, dtype=answerTypeDemod)
             answerTrace = np.zeros((recordsPerCapture, biggerTrace), dtype=answerTypeTrace)
@@ -434,9 +439,9 @@ class Alazar935x(DllInstrument):
                         iindex = index + '_' + str(j).zfill(zerosStep)
                     else:
                         iindex = index
-                    answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[j] * np.sin(angle)
-                    answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[j] * np.cos(angle)
-
+                    answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[:,j] * np.sin(angle)
+                    answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[:,j] * np.cos(angle)
+            
             else:
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(recordsPerCapture, Nstep[i], -1), axis=2)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(recordsPerCapture, Nstep[i], -1), axis=2)
@@ -454,7 +459,11 @@ class Alazar935x(DllInstrument):
             else:
                 Tracestring = 'B' + str(i-NdemodA-NdemodB-NtraceA).zfill(zerosTraceB)
             if average:
-                answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
+                if Npoints==0:
+                    answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
+                else:
+                    data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,biggerTrace)
+                    answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
             else:
                 answerTrace[Tracestring][:,:samplesPerDemod[i]] = data[i]
 
