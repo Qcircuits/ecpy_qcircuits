@@ -33,7 +33,8 @@ enamldef DemodAlazarView(InstrView): view:
                          [instr_selection, traces_val, buffer_val,
                           average_val, averaging, trigRange_val, trigLevel_val]),
                     hbox(demodA,demodB),
-                    hbox(traceA,traceB)),
+                    hbox(traceA,traceB),
+                    demodForm),
                     traces_val.width == buffer_val.width,
                     averaging.width == traces_val.width,
                     demodA.width == demodB.width,
@@ -206,3 +207,136 @@ enamldef DemodAlazarView(InstrView): view:
                             ---- Note that data acquisition by channel B will be
                             disabled if demodulation and trace record are both
                             disabled on this channel. This improves channel A speed.'''))
+    GroupBox: demodForm:
+        title = 'Demodulation function'
+
+        
+        Label: demodFormFile:
+            text = 'Function used for the demodulation'
+        Field: demodFormFile_val:
+            text := task.demodFormFile
+            tool_tip = fill(cleandoc('''list of 2 numpy array containing the two function that will be used for the demodulation
+                                     instead of cosinus and sinus. The first one will replace
+                                     cosinus, the second will replace sinus'''))
+            
+            
+enamldef VNAAlazarView(InstrView): view:
+
+    constraints = [vbox(
+                    grid([instr_label, traces, buffer, average, averaging,
+                          trigRange, trigLevel],
+                         [instr_selection, traces_val, buffer_val,
+                          average_val, averaging, trigRange_val, trigLevel_val]),
+                    hbox(demodA,demodB),
+                    demodForm),
+                    traces_val.width == buffer_val.width,
+                    averaging.width == traces_val.width,
+                    demodA.width == demodB.width]
+
+    Label: traces:
+        text = 'Number of traces'
+    Field: traces_val:
+        text := task.tracesnumber
+
+    Label: buffer:
+        text = 'Traces per Buffer'
+    Field: buffer_val:
+        text := task.tracesbuffer
+
+    Label: average:
+        text = 'Average'
+    CheckBox: average_val:
+        checked := task.average
+
+    Container: averaging:     
+        Conditional:
+            condition << average_val.checked
+
+    Label: trigRange:
+        text = 'Trigger range (V)'
+    ObjectCombo: trigRange_val:
+        items << list(task.get_member('trigrange').items)
+        selected := task.trigrange
+
+    Label: trigLevel:
+        text = 'Trigger level (V)'
+    Field: trigLevel_val:
+        text := task.triglevel
+
+    GroupBox: demodA:
+        title = 'Channel A demodulation settings'
+        constraints = [grid([after, duration, dfreq],
+                            [after_val, duration_val, dfreq_val]),
+                       dfreq_val.width == after_val.width,
+                       after_val.width == duration_val.width]
+        Label: dfreq:
+            text = 'Demodulation frequencies (MHz)'
+        Field: dfreq_val:
+            text := task.freq
+            tool_tip = fill(cleandoc(
+                            '''python list containing frequencies'''))
+
+        Label: after:
+            text = 'Start time after trigger (ns)'
+        Field: after_val:
+            text := task.timeaftertrig
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example : 0,500,1500 or np.linspace(0,1500,3)'''))
+
+        Label: duration:
+            text = 'Duration (ns)'
+        Field: duration_val:
+            text := task.duration
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Demodulation
+                            on channel A will be disabled if one of the
+                            durations is set to zero.
+                            ---- Note that data acquisition by channel A will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel B speed.'''))
+
+    GroupBox: demodB:
+        title = 'Channel B demodulation settings'
+        constraints = [grid([afterB, durationB, dfreqB],
+                            [afterB_val, durationB_val, dfreqB_val]),
+                       dfreqB_val.width == afterB_val.width,
+                       afterB_val.width == durationB_val.width]
+        Label: dfreqB:
+            text = 'Demodulation frequencies (MHz)'
+        Field: dfreqB_val:
+            text := task.freqB
+            tool_tip = fill(cleandoc(
+                            '''python list containing frequencies'''))
+
+
+        Label: afterB:
+            text = 'Start time after trigger (ns)'
+        Field: afterB_val:
+            text := task.timeaftertrigB
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example : 0,500,1500 or np.linspace(0,1500,3)'''))
+
+        Label: durationB:
+            text = 'Duration (ns)'
+        Field: durationB_val:
+            text := task.durationB
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Demodulation
+                            on channel B will be disabled if one of the
+                            durations is set to zero.
+                            ---- Note that data acquisition by channel B will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel A speed.'''))
+
+    GroupBox: demodForm:
+        title = 'Demodulation function'
+
+        
+        Label: demodFormFile:
+            text = 'Functions used for the demodulation'
+        Field: demodFormFile_val:
+            text := task.demodFormFile
+            tool_tip = fill(cleandoc('''list containing all functions for the demodulation. 
+                                     file by twins'''))
+            
+            

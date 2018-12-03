@@ -22,6 +22,8 @@ from ecpy_pulses.pulses.api import Context, Contexts, Shape, Shapes
 from ecpy.instruments.api import (Starter, Connection, Drivers, Driver,
                                   Settings)
 
+from .instruments.starters.ZIQCircuitStarter import ZIQCircuitStarter
+
 
 enamldef QcircuitsManifest(PluginManifest):
     """The manifest declaring the extension points to the Ecpy.
@@ -57,7 +59,6 @@ enamldef QcircuitsManifest(PluginManifest):
                                        'VisaUSB': {'resource_class': 'INSTR'},
                                        'VisaTCPIP': {'resource_class': 'INSTR'}
                                        }
-                        
                 Drivers:
                     manufacturer = 'Rohde and Schwarz'
                     Driver:
@@ -75,6 +76,40 @@ enamldef QcircuitsManifest(PluginManifest):
                     driver = 'alazar935x:Alazar935x'
                     manufacturer = 'AlazarTech'
                     model = 'ATS9350'
+                    
+                    
+                    
+            Drivers:
+                path='ZI'
+                starter = 'ecpy_qcircuit.starter.ZI'
+                connections = {'QcircuitZIConnection': {}}
+                Driver:
+                    driver = 'UHFLI:UHFLI'
+                    manufacturer = 'ZurickInstruments'
+                    model = 'UHFLI'
+                    
+    Extension:
+        id = 'instrumentsqcircuit.starters'
+        point = 'ecpy.instruments.starters'
+        Starter:
+            id = 'ecpy_qcircuit.starter.ZI'
+            description = ('Starter for legacy instruments from ZI')
+            starter = ZIQCircuitStarter()
+            
+    Extension:
+        id = 'instrumentsqcircuit.connections'
+        point = 'ecpy.instruments.connections'
+        Connection:
+            id = 'QcircuitZIConnection'
+            description = ('Connection for instruments from ZI.')
+            new => (workbench, defaults, read_only):
+                with enaml.imports():
+                    from .instruments.connections.ZI_connection\
+                        import ZIConnection
+                defaults = dict(serial_number=defaults.get('serial_number',''))
+
+                return ZIConnection(read_only=read_only, declaration=self,
+                                     **defaults)
 
     Extension:
         id = 'ecpy_qcircuits.tasks'
@@ -87,6 +122,10 @@ enamldef QcircuitsManifest(PluginManifest):
                 Task:
                     task = 'alazar_tasks:DemodAlazarTask'
                     view = 'views.alazar_views:DemodAlazarView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.Alazar935x']
+                Task:
+                    task = 'alazar_tasks:VNAAlazarTask'
+                    view = 'views.alazar_views:VNAAlazarView'
                     instruments = ['ecpy_qcircuits.Qcircuits.Alazar935x']
                 Task:
                     task = 'ena_tasks:ENASweepTask'
@@ -105,6 +144,30 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.psa_views:PSAGetFrequencyPointView'
                     instruments = ['ecpy_qcircuits.Qcircuits.RohdeAndSchwarzPSA']
                 Task:
+                    task = 'UHFLI_tasks:ScopeDemodUHFLITask'
+                    view = 'views.UHFLI_views:ScopeDemodUHFLIView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.UHFLI']
+                Task: 
+                    task = 'UHFLI_tasks:DemodUHFLITask'
+                    view = 'views.UHFLI_views:DemodUHFLIView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:PulseTransferUHFLITask'
+                    view = 'views.UHFLI_views:PulseTransferUHFLIView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:SetParametersUHFLITask'
+                    view = 'views.UHFLI_views:SetParametersUHFLIView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:CloseAWGUHFLITask'
+                    view = 'views.UHFLI_views:CloseAWGUHFLIView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:DAQDemodUHFLITask'
+                    view = 'views.UHFLI_views:DAQDemodUHFLIView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.UHFLI']
+                Task:
                     task = 'AWG_tasks:AWGSetDCOffsetTask'
                     view = 'views.AWG_views:AWGSetDCOffsetView'
                     instruments = ['ecpy_qcircuits.Qcircuits.TaborAWG']
@@ -116,6 +179,7 @@ enamldef QcircuitsManifest(PluginManifest):
                     task = 'tune_IQ_mixer:TuneIQMixerTask'
                     view = 'views.tune_IQ_mixer_views:TuneIQmixerView'
                     instruments = ['ecpy_qcircuits.Qcircuits.TaborAWG']
+
                     
     Extension:
         id = 'contexts'
