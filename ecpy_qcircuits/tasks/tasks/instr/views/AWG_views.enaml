@@ -1,0 +1,69 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2016 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Views for the ENA tasks.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+import re
+from textwrap import fill
+
+from atom.api import set_default, Value, observe
+from enaml.core.api import Conditional
+from enaml.layout.api import grid, vbox, hbox, factory
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, Container,
+                               CheckBox)
+from enaml.stdlib.fields import IntField, FloatField
+from enaml.validator import Validator
+
+from ecpy.tasks.api import EVALUATER_TOOLTIP
+from ecpy.utils.widgets.qt_completers import QtLineCompleter
+from ecpy_hqc_legacy.utils.layouts import auto_grid_layout
+from ecpy_hqc_legacy.utils.widgets.pair_editor import PairEditor
+from ...base_instr_view import InstrView
+        
+   
+enamldef AWGSetDCOffsetView(InstrView): view:
+    """View for the AWGSetDCOffsetTask.
+
+    """
+    constraints = [factory(auto_grid_layout)]
+
+    Label: channel_lab:
+        text = 'Channel'
+    Field: channel_val:
+        text := task.channel
+        tool_tip = fill("The channel number you want to set the DC offset of.")
+    
+    Label: voltage_lab:
+        text = 'DC offset (V)'
+    QtLineCompleter: voltage_val:
+        text := task.voltage
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("The voltage the offset should be set to.")
+        
+enamldef AWGSetVppView(InstrView): view:
+    """View for the AWGSetVppTask.
+
+    """
+    constraints = [factory(auto_grid_layout)]
+
+    Label: channel_lab:
+        text = 'Channel'
+    Field: channel_val:
+        text := task.channel
+        tool_tip = fill("The channel number you want to set the Vpp of.")
+    
+    Label: amplitude_lab:
+        text = 'Vpp amplitude (V)'
+    QtLineCompleter: amplitude_val:
+        text := task.amplitude
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("The voltage the Vpp amplitude should be set to.")

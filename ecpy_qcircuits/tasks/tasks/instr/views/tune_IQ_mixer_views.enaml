@@ -1,0 +1,73 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2017 by ExopyHqcLegacy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Views for the microwave sources related tasks.
+
+"""
+from enaml.stdlib.fields import FloatField
+from enaml.core.api import Conditional
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, CheckBox)
+from enaml.layout.api import factory
+
+from textwrap import fill
+
+from ecpy.tasks.api import InstrTaskView, EVALUATER_TOOLTIP
+from ecpy.utils.widgets.qt_completers import QtLineCompleter
+from ecpy_hqc_legacy.utils.layouts import auto_grid_layout
+from ...base_instr_view import InstrView
+
+
+enamldef TuneIQmixerView(InstrView): view:
+    """View for the RFSetOnOffTask.
+
+    """
+    #: Attribute set by the parent view if the task is embedded inside a
+    #: LoopTask
+    attr in_loop : bool = False
+
+    constraints = [factory(auto_grid_layout)]
+
+    Conditional:
+        condition << not in_loop
+        Label:
+            text = 'LO Freq (GHz)'
+        QtLineCompleter:
+            hug_width = 'ignore'
+            text := task.freq
+            entries_updater << task.list_accessible_database_entries
+            tool_tip = EVALUATER_TOOLTIP
+            
+    Label:
+        text = 'LO power (dBm)'
+    QtLineCompleter:
+        hug_width = 'ignore'
+        text := task.power
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+    Label:
+        text = 'Modulation freq (MHz)'
+    QtLineCompleter:
+        hug_width = 'ignore'
+        text := task.det
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+    Label:
+        text = 'Side band mode'
+    ObjectCombo:
+        items << list(task.get_member('SB').items)
+        selected := task.SB
+    Label:
+        text = 'Channel I'
+    ObjectCombo:
+        items << list(task.get_member('channelI').items)
+        selected := task.channelI
+    Label:
+        text = 'Channel Q'
+    ObjectCombo:
+        items << list(task.get_member('channelQ').items)
+        selected := task.channelQ
