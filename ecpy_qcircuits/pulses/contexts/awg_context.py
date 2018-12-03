@@ -136,7 +136,7 @@ class TaborAWGContext(BaseContext):
                         {'Kind issue': msg.format(pulse.index,
                                                   (pulse.kind, pulse.channel))}
                        )
-        
+
         # Check the overflows
         traceback = {}
         for channel in used_channels:

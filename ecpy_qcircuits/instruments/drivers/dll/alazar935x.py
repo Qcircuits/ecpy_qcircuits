@@ -101,7 +101,11 @@ class Alazar935x(DllInstrument):
 
         super(Alazar935x, self).__init__(connection_infos, caching_allowed,
                                          caching_permissions, auto_open)
-
+        
+        ### JEREMY
+        self.clock_set = False
+        ### 
+        
         if auto_open:
             self.open_connection()
 
@@ -127,68 +131,79 @@ class Alazar935x(DllInstrument):
         # TODO: Select clock parameters as required to generate this
         # sample rate
         samplesPerSec = 500000000.0
-        board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
+        
+        ## JEREMY
+        if not self.clock_set:
+            board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
                                   500000000,
                                   ats.CLOCK_EDGE_RISING,
                                   0)
-        # TODO: Select channel A input parameters as required.
-        board.inputControl(ats.CHANNEL_A,
-                               ats.DC_COUPLING,
-                               ats.INPUT_RANGE_PM_400_MV,
-                               ats.IMPEDANCE_50_OHM)
-
-        # TODO: Select channel A bandwidth limit as required.
-        board.setBWLimit(ats.CHANNEL_A, 0)
-
-
-        # TODO: Select channel B input parameters as required.
-        board.inputControl(ats.CHANNEL_B,
-                               ats.DC_COUPLING,
-                               ats.INPUT_RANGE_PM_400_MV,
-                               ats.IMPEDANCE_50_OHM)
-
-        # TODO: Select channel B bandwidth limit as required.
-        board.setBWLimit(ats.CHANNEL_B, 0)
-        # TODO: Select trigger inputs and levels as required.
-        trigCode = int(128 + 127 * trigLevel / trigRange)
-        board.setTriggerOperation(ats.TRIG_ENGINE_OP_J,
-                                      ats.TRIG_ENGINE_J,
-                                      ats.TRIG_EXTERNAL,
-                                      ats.TRIGGER_SLOPE_POSITIVE,
-                                      trigCode,
-                                      ats.TRIG_ENGINE_K,
-                                      ats.TRIG_DISABLE,
-                                      ats.TRIGGER_SLOPE_POSITIVE,
-                                      128)
-
-        # TODO: Select external trigger parameters as required.
-        if trigRange == 5:
-            board.setExternalTrigger(ats.DC_COUPLING,
-                                     ats.ETR_5V)
-        else:
-            board.setExternalTrigger(ats.DC_COUPLING,
-                                     ats.ETR_2V5)
-
-        # TODO: Set trigger delay as required.
-        triggerDelay_sec = 0.
-        triggerDelay_samples = int(triggerDelay_sec * samplesPerSec + 0.5)
-        board.setTriggerDelay(triggerDelay_samples)
-
-        # TODO: Set trigger timeout as required.
-        #
-        # NOTE: The board will wait for a for this amount of time for a
-        # trigger event.  If a trigger event does not arrive, then the
-        # board will automatically trigger. Set the trigger timeout value
-        # to 0 to force the board to wait forever for a trigger event.
-        #
-        # IMPORTANT: The trigger timeout value should be set to zero after
-        # appropriate trigger parameters have been determined, otherwise
-        # the board may trigger if the timeout interval expires before a
-        # hardware trigger event arrives.
-        board.setTriggerTimeOut(0)
-        # Configure AUX I/O connector as required
-        board.configureAuxIO(ats.AUX_OUT_TRIGGER,
-                                 0)
+            self.clock_set = True
+            
+            #board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
+            #                          500000000,
+            #                          ats.CLOCK_EDGE_RISING,
+            #                          0)
+            ###
+        
+            # TODO: Select channel A input parameters as required.
+            board.inputControl(ats.CHANNEL_A,
+                                   ats.DC_COUPLING,
+                                   ats.INPUT_RANGE_PM_400_MV,
+                                   ats.IMPEDANCE_50_OHM)
+    
+            # TODO: Select channel A bandwidth limit as required.
+            board.setBWLimit(ats.CHANNEL_A, 0)
+    
+    
+            # TODO: Select channel B input parameters as required.
+            board.inputControl(ats.CHANNEL_B,
+                                   ats.DC_COUPLING,
+                                   ats.INPUT_RANGE_PM_400_MV,
+                                   ats.IMPEDANCE_50_OHM)
+    
+            # TODO: Select channel B bandwidth limit as required.
+            board.setBWLimit(ats.CHANNEL_B, 0)
+            # TODO: Select trigger inputs and levels as required.
+            trigCode = int(128 + 127 * trigLevel / trigRange)
+            board.setTriggerOperation(ats.TRIG_ENGINE_OP_J,
+                                          ats.TRIG_ENGINE_J,
+                                          ats.TRIG_EXTERNAL,
+                                          ats.TRIGGER_SLOPE_POSITIVE,
+                                          trigCode,
+                                          ats.TRIG_ENGINE_K,
+                                          ats.TRIG_DISABLE,
+                                          ats.TRIGGER_SLOPE_POSITIVE,
+                                          128)
+    
+            # TODO: Select external trigger parameters as required.
+            if trigRange == 5:
+                board.setExternalTrigger(ats.DC_COUPLING,
+                                         ats.ETR_5V)
+            else:
+                board.setExternalTrigger(ats.DC_COUPLING,
+                                         ats.ETR_2V5)
+    
+            # TODO: Set trigger delay as required.
+            triggerDelay_sec = 0.
+            triggerDelay_samples = int(triggerDelay_sec * samplesPerSec + 0.5)
+            board.setTriggerDelay(triggerDelay_samples)
+    
+            # TODO: Set trigger timeout as required.
+            #
+            # NOTE: The board will wait for a for this amount of time for a
+            # trigger event.  If a trigger event does not arrive, then the
+            # board will automatically trigger. Set the trigger timeout value
+            # to 0 to force the board to wait forever for a trigger event.
+            #
+            # IMPORTANT: The trigger timeout value should be set to zero after
+            # appropriate trigger parameters have been determined, otherwise
+            # the board may trigger if the timeout interval expires before a
+            # hardware trigger event arrives.
+            board.setTriggerTimeOut(0)
+            # Configure AUX I/O connector as required
+            board.configureAuxIO(ats.AUX_OUT_TRIGGER,
+                                     0)
 
     def get_demod(self, startaftertrig, duration, recordsPerCapture,
                   recordsPerBuffer, timestep, freq, average, NdemodA, NdemodB,

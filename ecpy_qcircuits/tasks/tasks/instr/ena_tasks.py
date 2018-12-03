@@ -72,8 +72,8 @@ class PNASetRFFrequencyInterface(TaskInterface):
             task.start_driver()
             self.channel_driver = task.driver.get_channel(self.channel)
 
-        task.driver.owner = task.task_name
-        self.channel_driver.owner = task.task_name
+        task.driver.owner = task.name
+        self.channel_driver.owner = task.name
 
         if frequency is None:
             frequency = task.format_and_eval_string(task.frequency)
@@ -113,8 +113,8 @@ class PNASetRFPowerInterface(TaskInterface):
             task.start_driver()
             self.channel_driver = task.driver.get_channel(self.channel)
 
-        task.driver.owner = task.task_name
-        self.channel_driver.owner = task.task_name
+        task.driver.owner = task.name
+        self.channel_driver.owner = task.name
 
         if power is None:
             power = task.format_and_eval_string(task.power)
@@ -174,7 +174,7 @@ class ENASweepTask(SingleChannelPNATask):
     stop = Unicode().tag(pref=True, feval=FEVAL)
 
     points = Unicode().tag(pref=True, feval=FEVAL)
-
+    
     sweep_type = Enum('','Frequency', 'Power').tag(pref=True)
 
     measures = List().tag(pref=True)
@@ -193,9 +193,10 @@ class ENASweepTask(SingleChannelPNATask):
         if not self.driver:
             self.start_driver()
             self.channel_driver = self.driver.get_channel(self.channel)
+            self.channel_driver = self.driver.get_channel(self.channel)
 
-        if self.driver.owner != self.task_name:
-            self.driver.owner = self.task_name
+        if self.driver.owner != self.name:
+            self.driver.owner = self.name
             self.driver.set_all_chanel_to_hold()
             self.driver.trigger_scope = 'CURRent'
             self.driver.trigger_source = 'MANual'
@@ -203,8 +204,8 @@ class ENASweepTask(SingleChannelPNATask):
         meas_names = ['Ch{}:'.format(self.channel) + ':'.join(measure)
                       for measure in self.measures]
 
-        if self.channel_driver.owner != self.task_name:
-            self.channel_driver.owner = self.task_name
+        if self.channel_driver.owner != self.name:
+            self.channel_driver.owner = self.name
             if self.if_bandwidth>0:
                 self.channel_driver.if_bandwidth = self.if_bandwidth
 
@@ -273,7 +274,7 @@ class ENASweepTask(SingleChannelPNATask):
         for i, meas in enumerate(self.measures):
             match = pattern.match(meas[0])
             if not match:
-                path = self.task_path + '/' + self.task_name
+                path = self.task_path + '/' + self.name
                 path += '_Meas_{}'.format(i)
                 traceback[path] = 'Unvalid parameter : {}'.format(meas[0])
                 test = False
@@ -282,21 +283,21 @@ class ENASweepTask(SingleChannelPNATask):
                 self.format_and_eval_string(self.start)
             except:
                 test = False
-                traceback[self.task_path + '/' + self.task_name + '-start'] = \
+                traceback[self.task_path + '/' + self.name + '-start'] = \
                     'Failed to eval the start formula {}'.format(self.start)
         if self.stop:
             try:
                 self.format_and_eval_string(self.stop)
             except:
                 test = False
-                traceback[self.task_path + '/' + self.task_name + '-stop'] = \
+                traceback[self.task_path + '/' + self.name + '-stop'] = \
                     'Failed to eval the stop formula {}'.format(self.stop)
         if self.points:
             try:
                 self.format_and_eval_string(self.points)
             except:
                 test = False
-                traceback[self.task_path + '/' + self.task_name + '-step'] = \
+                traceback[self.task_path + '/' + self.name + '-step'] = \
                     'Failed to eval the points formula {}'.format(self.points)
 
         data = [np.array([0.0, 1.0])] + \

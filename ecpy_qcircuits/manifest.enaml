@@ -57,6 +57,15 @@ enamldef QcircuitsManifest(PluginManifest):
                                        'VisaUSB': {'resource_class': 'INSTR'},
                                        'VisaTCPIP': {'resource_class': 'INSTR'}
                                        }
+                        
+                Drivers:
+                    manufacturer = 'Rohde and Schwarz'
+                    Driver:
+                        driver = 'rohde_and_schwarz_psa:RohdeAndSchwarzPSA'
+                        model = 'PSA'
+                        connections = {'VisaGPIB': {'resource_class': 'INSTR'},
+                                       'VisaTCPIP': {'resource_class': 'INSTR'}
+                                       }
 
             Drivers:
                 path = 'dll'
@@ -87,6 +96,26 @@ enamldef QcircuitsManifest(PluginManifest):
                     task = 'ena_tasks:ENAGetTracesTask'
                     view = 'views.ena_views:ENAGetTracesView'
                     instruments = ['ecpy_qcircuits.Qcircuits.KeysightENA']
+                Task:
+                    task = 'psa_tasks:PSAGetSpectrumTask'
+                    view = 'views.psa_views:PSAGetSpectrumView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.RohdeAndSchwarzPSA']
+                Task:
+                    task = 'psa_tasks:PSAGetFrequencyPointTask'
+                    view = 'views.psa_views:PSAGetFrequencyPointView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.RohdeAndSchwarzPSA']
+                Task:
+                    task = 'AWG_tasks:AWGSetDCOffsetTask'
+                    view = 'views.AWG_views:AWGSetDCOffsetView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.TaborAWG']
+                Task:
+                    task = 'AWG_tasks:AWGSetVppTask'
+                    view = 'views.AWG_views:AWGSetVppView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.TaborAWG']
+                Task:
+                    task = 'tune_IQ_mixer:TuneIQMixerTask'
+                    view = 'views.tune_IQ_mixer_views:TuneIQmixerView'
+                    instruments = ['ecpy_qcircuits.Qcircuits.TaborAWG']
                     
     Extension:
         id = 'contexts'

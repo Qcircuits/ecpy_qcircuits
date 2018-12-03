@@ -746,7 +746,7 @@ class KeysightENA(VisaInstrument):
     def get_channel(self, num):
         """
         """
-        if not num-1 in range(12):
+        if num-1 not in range(12):
             return None
 
         if num in self.channels:

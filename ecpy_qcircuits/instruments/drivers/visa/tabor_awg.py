@@ -68,8 +68,7 @@ class TaborAWGChannel(BaseInstrument):
         """
         with self.secure():
             self._AWG.write('INST {}'.format(self._channel))
-            output = self._AWG.ask('OUTP?'
-                                             )
+            output = self._AWG.ask('OUTP?')
             if output == 'ON':
                 return 'ON'
             elif output == 'OFF':
@@ -109,8 +108,143 @@ class TaborAWGChannel(BaseInstrument):
                 mess = fill(cleandoc('''The invalid value {} was sent to
                             switch_on_off method''').format(value), 80)
                 raise VisaTypeError(mess)
+    
+    @secure_communication()        
+    def output_mode(self):
+        """ Output mode getter method
 
+        """
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            if self.output_state() == 'OFF':
+                mes = cleandoc('AWG channel {} is not currently outputting'
+                               .format(self._channel))
+                raise InstrIOError(mes)
+            else:
+                mode = self._AWG.ask('SOUR:FUNC:MODE?')
+                return mode
+            
+    @secure_communication()   
+    def set_output_mode(self,value):
+        """ Output mode setter method
 
+        """
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            if self.output_state() == 'OFF':
+                mes = cleandoc('AWG channel {} is not currently outputting'
+                               .format(self._channel))
+                raise InstrIOError(mes)
+            else:
+                self._AWG.write('SOUR:FUNC:MODE {}'.format(value))
+                if self._AWG.ask('SOUR:FUNC:MODE?') != value:
+                    raise InstrIOError(cleandoc('''Instrument did not set
+                                                correctly the output mode'''))
+                    
+    @secure_communication()
+    def frequency(self):
+        ''' modulation frequency getter method
+        
+        '''
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            if self.output_mode() != 'FIX':
+                mes = cleandoc('AWG channel {} is not in standard mode'
+                               .format(self._channel))
+                raise InstrIOError(mes)
+            else:
+                freq = self._AWG.ask(':FREQ?')
+                return float(freq)
+        
+    @secure_communication()
+    def set_frequency(self,value):
+        ''' modulation frequency setter method
+        
+        '''
+        val = float(value)
+        if not (1e3 <= val <= 1e9):
+            raise InstrIOError(cleandoc('Set frequency is out of bounds'))
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            self._AWG.write(':FREQ {}'.format(val))
+            if float(self._AWG.ask(':FREQ?')) != val:
+                raise InstrIOError(cleandoc('''Instrument did not set
+                                                correctly the frequency'''))    
+    
+    @secure_communication()
+    def DC_offset(self):
+        ''' DC offset getter method
+        
+        '''
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            offset = self._AWG.ask(':VOLT:OFFS?')
+            return float(offset)
+        
+    @secure_communication()
+    def set_DC_offset(self,value):
+        ''' DC offset setter method
+        
+        '''
+        val = np.round(float(value),3)
+        if val > 1:
+            raise InstrIOError(cleandoc('Set DC offset out of bounds'))
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            self._AWG.write(':VOLT:OFFS {}'.format(val))
+            if float(self._AWG.ask(':VOLT:OFFS?')) != val:
+                raise InstrIOError(cleandoc('''Instrument did not set
+                                                correctly the DC offset'''))
+    
+    @secure_communication()
+    def Vpp(self):
+        ''' Voltage peak peak getter method
+        
+        '''
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            vpp = self._AWG.ask(':VOLT?')
+            return float(vpp)
+        
+    @secure_communication()
+    def set_Vpp(self,value):
+        ''' Voltage peak peak setter method
+        
+        '''
+        val = np.round(float(value),3)
+        if (val > 0.15) or (val < 0.05):
+            raise InstrIOError(cleandoc('Set Vpp out of bounds'))
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            self._AWG.write(':VOLT {};*WAI'.format(val))
+            if float(self._AWG.ask(':VOLT?')) != val:
+                raise InstrIOError(cleandoc('''Instrument did not set
+                                                correctly the Vpp'''))
+    
+    @secure_communication()
+    def phase(self):
+        ''' phase of channel getter method
+        
+        '''
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            phase = self._AWG.ask(':SIN:PHAS?')
+            return float(phase)
+        
+    @secure_communication()
+    def set_phase(self,value):
+        ''' phase setter method
+        
+        '''
+        val = np.round(float(value),3)
+        if (val > 360) or (val < 0):
+            raise InstrIOError(cleandoc('Set phase out of bounds'))
+        with self.secure():
+            self._AWG.write('INST {}'.format(self._channel))
+            self._AWG.write(':SIN:PHAS {}'.format(val))
+            if float(self._AWG.ask(':SIN:PHAS?')) != val:
+                raise InstrIOError(cleandoc('''Instrument did not set
+                                                correctly the phase'''))
 
 
 class TaborAWG(VisaInstrument):
@@ -155,8 +289,8 @@ class TaborAWG(VisaInstrument):
     def defined_channels(self):
         """
         """
-        defined_channels = [1, 2, 3, 4]
-        return defined_channels
+        channel_list = [1, 2, 3, 4]
+        return channel_list
 
     @instrument_property
     @secure_communication()
@@ -313,3 +447,27 @@ class TaborAWG(VisaInstrument):
             mess = fill(cleandoc('''The invalid value {} was sent to
                                  run mode method''').format(value), 80)
             raise VisaTypeError(mess)
+            
+    @instrument_property
+    @secure_communication()
+    def DC_offset_range(self):
+        """
+        """
+        DC_offset_range = (-1,1)
+        return DC_offset_range
+
+    @secure_communication()
+    def set_DC_offset(self,channel,value):
+        ''' sets the DC offset for a given channel'''
+        channels = self.defined_channels
+        if channel in channels:    
+            self.write(':INST {}'.format(channel)) #select channel
+            DC_min, DC_max = self.DC_offset_range
+            if (value >= DC_min) and (value <= DC_max):        
+                self.write(':VOLT:OFFS {}'.format(value))
+            else:
+                raise InstrIOError(cleandoc('''DC offset value out of range. 
+                                            Allowed range: {} to {} V.'''.format(DC_min,DC_max)))
+        else:
+            raise InstrIOError(cleandoc('''Channel number out of range.
+                                        Accepted channel numbers: {}.'''.format(channels)))
