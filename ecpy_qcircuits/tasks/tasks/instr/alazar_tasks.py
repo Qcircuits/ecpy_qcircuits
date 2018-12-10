@@ -28,6 +28,7 @@ VAL_INT = validators.Feval(types=numbers.Integral)
 class DemodAlazarTask(InstrumentTask):
     """ Get the raw or averaged quadratures of the signal.
         Can also get raw or averaged traces of the signal.
+        Custom shape for demodulation can be used.
     """
     freq = Unicode('50').tag(pref=True)
 
@@ -247,8 +248,7 @@ class DemodAlazarTask(InstrumentTask):
 
 
 class VNAAlazarTask(InstrumentTask):
-    """ Get the raw or averaged quadratures of the signal.
-        Can also get raw or averaged traces of the signal.
+    """ Allows to used an Alazar card as a VNA.
     """
     freq = Unicode('[]').tag(pref=True)
 

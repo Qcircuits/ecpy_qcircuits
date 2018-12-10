@@ -33,7 +33,7 @@ class ZIInstrument(BaseInstrument):
         super(ZIInstrument, self).__init__(connection_info, caching_allowed,
                                              caching_permissions)
 
-        self.apilevel=5
+        self.apilevel=6
         self.device_number=connection_info['device_number']
         self.required_devtype='.*'
         self.required_options=None

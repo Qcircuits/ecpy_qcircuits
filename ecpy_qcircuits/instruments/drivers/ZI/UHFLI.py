@@ -34,7 +34,7 @@ class UHFLI(ZIInstrument):
                                              caching_permissions)
         self.awgModule = None
         self.required_devtype='.*LI'
-        
+        self.required_options=['AWG','DIG']
         
     def close_connection(self):
         
@@ -374,13 +374,13 @@ class UHFLI(ZIInstrument):
 
 
     def get_DAQmodule(self, DAM, dimensions, signalID,signal_paths):
-    
+        print(signalID)
         data={i:[] for i in signalID}
         # Start recording data.
         DAM.set('dataAcquisitionModule/endless', 0);
         t0 = time.time()
         # Record data in a loop with timeout.
-        timeout =dimensions[0]*dimensions[1]*dimensions[2]*0.01+10
+        timeout =dimensions[0]*dimensions[1]*dimensions[2]*0.001+10
         DAM.execute()
         #while not DAM.finished():
         while not DAM.finished():
@@ -405,7 +405,7 @@ class UHFLI(ZIInstrument):
     
         answerTypeGrid=[]
         for sid  in signalID:
-            answerTypeGrid = answerTypeGrid+ [(sid,str(data[sid][0,0,0].dtype))]
+            answerTypeGrid = answerTypeGrid+ [(sid,str(data[sid][0][0][0].dtype))]
               
 
         answerDAM = np.zeros((dimensions[0],dimensions[1],dimensions[2]), dtype=answerTypeGrid)

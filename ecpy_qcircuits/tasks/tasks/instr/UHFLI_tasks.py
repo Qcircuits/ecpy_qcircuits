@@ -563,7 +563,7 @@ class DAQDemodUHFLITask(InstrumentTask):
 
         numberRow=self.format_and_eval_string(self.numberRow);
         numberCol=self.format_and_eval_string(self.numberCol);
-        numberGrid=self.format_and_eva_stringl(self.numberGrid);
+        numberGrid=self.format_and_eval_string(self.numberGrid);
 
 
         if 0 == numberRow or 0 == numberCol or 0 == numberGrid:
@@ -575,7 +575,7 @@ class DAQDemodUHFLITask(InstrumentTask):
         if len(self.signalDict.keys()) == 0 :
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_grid'] = \
-                           cleandoc('''At least select one pass for a signal to acquire''')
+                           cleandoc('''At least select one path for a signal to acquire''')
         
         return test, traceback
     
@@ -606,19 +606,17 @@ class DAQDemodUHFLITask(InstrumentTask):
         else:
             avg=''
         for d, s in self.signalDict.items():
-            signal_paths.append('/%s/demods/%d/sample.%s'+avg % (device,int(d[-1])-1,s))
-            self.driver.daq.setInt('/%S/demods/%d/enable' % (device, int(d[-1])-1), 1)
-            signalID.append([d[-1]+s+avg])
+            signal_paths.append('/%s/demods/%d/sample.%s'%(device,int(d[-1])-1,s)+avg)
+            self.driver.daq.setInt('/%s/demods/%d/enable' % (device, int(d[-1])-1), 1)
+            signalID.append(d[-1]+s)
         self.driver.daq.sync()
         #give experimental setting
-
         exp_setting = [['dataAcquisitionModule/device' , device],
                         ['dataAcquisitionModule/grid/mode', 4],# grid mode = exact
                         ['dataAcquisitionModule/grid/cols', numberCol],
                         ['dataAcquisitionModule/grid/rows', numberRow],
-                        ['dataAcquisitionModule/count',numberGrid]
-                        ['dataAcquisitionModule/triggernode', 
-                         '/%s/demods/%s/sample.TrigAWGTrig%s' %(device,self.triggerChain[-1],self.trigger[-1])],
+                        ['dataAcquisitionModule/count',numberGrid],
+                        ['dataAcquisitionModule/triggernode','/%s/demods/%d/sample.TrigAWGTrig%s' %(device,int(self.triggerChain[-1])-1,self.trigger[-1])],
                         ['dataAcquisitionModule/clearhistory', 1],
                         ['dataAcquisitionModule/type', 6],
                         ['dataAcquisitionModule/delay', delay],
@@ -637,7 +635,7 @@ class DAQDemodUHFLITask(InstrumentTask):
             DAM.subscribe(signal_path)
         self.driver.daq.sync()
         
-        answerDAM = self.driver.get_DAQmodule(DAM,[numberCol,numberRow,numberCol],
+        answerDAM = self.driver.get_DAQmodule(DAM,[numberGrid,numberRow,numberCol],
                                                signalID,signal_paths)
 
         self.write_in_database('Grid', answerDAM)

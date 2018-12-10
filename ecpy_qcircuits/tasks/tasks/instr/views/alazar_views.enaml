@@ -212,12 +212,13 @@ enamldef DemodAlazarView(InstrView): view:
 
         
         Label: demodFormFile:
-            text = 'Function used for the demodulation'
+            text = 'Custom Function used for the demodulation'
         Field: demodFormFile_val:
             text := task.demodFormFile
             tool_tip = fill(cleandoc('''list of 2 numpy array containing the two function that will be used for the demodulation
                                      instead of cosinus and sinus. The first one will replace
-                                     cosinus, the second will replace sinus'''))
+                                     cosinus, the second will replace sinus.
+                                     If empty classical demodulation used.'''))
             
             
 enamldef VNAAlazarView(InstrView): view:

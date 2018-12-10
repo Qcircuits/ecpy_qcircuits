@@ -505,7 +505,7 @@ enamldef DAQDemodUHFLIView(InstrView): view:
     Label: delay:
         text = 'Delay (ns)'
     QtLineCompleter: delay_val:
-        text := task.numberGrid
+        text := task.delay
         tool_tip = fill(cleandoc('''Negative delay are possible'''))
         entries_updater = task.list_accessible_database_entries
     

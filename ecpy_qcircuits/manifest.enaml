@@ -85,7 +85,7 @@ enamldef QcircuitsManifest(PluginManifest):
                 connections = {'QcircuitZIConnection': {}}
                 Driver:
                     driver = 'UHFLI:UHFLI'
-                    manufacturer = 'ZurickInstruments'
+                    manufacturer = 'ZurichInstruments'
                     model = 'UHFLI'
                     
     Extension:
