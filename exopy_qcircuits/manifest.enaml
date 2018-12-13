@@ -9,6 +9,9 @@
 """The manifest contributing the extensions to the main application.
 
 """
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
 import os
 
 import enaml
@@ -18,6 +21,8 @@ from exopy.tasks.api import Tasks, Task, Interface
 from exopy_pulses.pulses.api import Context, Contexts, Shape, Shapes
 from exopy.instruments.api import (Starter, Connection, Drivers, Driver,
                                   Settings)
+
+from .instruments.starters.ZIQCircuitStarter import ZIQCircuitStarter
 
 
 enamldef QcircuitsManifest(PluginManifest):
@@ -54,6 +59,14 @@ enamldef QcircuitsManifest(PluginManifest):
                                        'VisaUSB': {'resource_class': 'INSTR'},
                                        'VisaTCPIP': {'resource_class': 'INSTR'}
                                        }
+                Drivers:
+                    manufacturer = 'Rohde and Schwarz'
+                    Driver:
+                        driver = 'rohde_and_schwarz_psa:RohdeAndSchwarzPSA'
+                        model = 'PSA'
+                        connections = {'VisaGPIB': {'resource_class': 'INSTR'},
+                                       'VisaTCPIP': {'resource_class': 'INSTR'}
+                                       }
 
             Drivers:
                 path = 'dll'
@@ -63,6 +76,40 @@ enamldef QcircuitsManifest(PluginManifest):
                     driver = 'alazar935x:Alazar935x'
                     manufacturer = 'AlazarTech'
                     model = 'ATS9350'
+                    
+                    
+                    
+            Drivers:
+                path='ZI'
+                starter = 'exopy_qcircuit.starter.ZI'
+                connections = {'QcircuitZIConnection': {}}
+                Driver:
+                    driver = 'UHFLI:UHFLI'
+                    manufacturer = 'ZurichInstruments'
+                    model = 'UHFLI'
+                    
+    Extension:
+        id = 'instrumentsqcircuit.starters'
+        point = 'exopy.instruments.starters'
+        Starter:
+            id = 'exopy_qcircuit.starter.ZI'
+            description = ('Starter for legacy instruments from ZI')
+            starter = ZIQCircuitStarter()
+            
+    Extension:
+        id = 'instrumentsqcircuit.connections'
+        point = 'exopy.instruments.connections'
+        Connection:
+            id = 'QcircuitZIConnection'
+            description = ('Connection for instruments from ZI.')
+            new => (workbench, defaults, read_only):
+                with enaml.imports():
+                    from .instruments.connections.ZI_connection\
+                        import ZIConnection
+                defaults = dict(serial_number=defaults.get('serial_number',''))
+
+                return ZIConnection(read_only=read_only, declaration=self,
+                                     **defaults)
 
     Extension:
         id = 'exopy_qcircuits.tasks'
@@ -81,6 +128,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.alazar_views:VNAAlazarView'
                     instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']                
                 Task:
+                    task = 'alazar_tasks:VNAAlazarTask'
+                    view = 'views.alazar_views:VNAAlazarView'
+                    instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
+                Task:
                     task = 'ena_tasks:ENASweepTask'
                     view = 'views.ena_views:ENASweepView'
                     instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
@@ -88,6 +139,50 @@ enamldef QcircuitsManifest(PluginManifest):
                     task = 'ena_tasks:ENAGetTracesTask'
                     view = 'views.ena_views:ENAGetTracesView'
                     instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
+                Task:
+                    task = 'psa_tasks:PSAGetSpectrumTask'
+                    view = 'views.psa_views:PSAGetSpectrumView'
+                    instruments = ['exopy_qcircuits.Qcircuits.RohdeAndSchwarzPSA']
+                Task:
+                    task = 'psa_tasks:PSAGetFrequencyPointTask'
+                    view = 'views.psa_views:PSAGetFrequencyPointView'
+                    instruments = ['exopy_qcircuits.Qcircuits.RohdeAndSchwarzPSA']
+                Task:
+                    task = 'UHFLI_tasks:ScopeDemodUHFLITask'
+                    view = 'views.UHFLI_views:ScopeDemodUHFLIView'
+                    instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task: 
+                    task = 'UHFLI_tasks:DemodUHFLITask'
+                    view = 'views.UHFLI_views:DemodUHFLIView'
+                    instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:PulseTransferUHFLITask'
+                    view = 'views.UHFLI_views:PulseTransferUHFLIView'
+                    instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:SetParametersUHFLITask'
+                    view = 'views.UHFLI_views:SetParametersUHFLIView'
+                    instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:CloseAWGUHFLITask'
+                    view = 'views.UHFLI_views:CloseAWGUHFLIView'
+                    instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'UHFLI_tasks:DAQDemodUHFLITask'
+                    view = 'views.UHFLI_views:DAQDemodUHFLIView'
+                    instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'AWG_tasks:AWGSetDCOffsetTask'
+                    view = 'views.AWG_views:AWGSetDCOffsetView'
+                    instruments = ['exopy_qcircuits.Qcircuits.TaborAWG']
+                Task:
+                    task = 'AWG_tasks:AWGSetVppTask'
+                    view = 'views.AWG_views:AWGSetVppView'
+                    instruments = ['exopy_qcircuits.Qcircuits.TaborAWG']
+                Task:
+                    task = 'tune_IQ_mixer:TuneIQMixerTask'
+                    view = 'views.tune_IQ_mixer_views:TuneIQmixerView'
+                    instruments = ['exopy_qcircuits.Qcircuits.TaborAWG']
                 Task:
                     task = 'transfer_pulse_loop_task:TransferPulseLoopTask'
                     view = ('views.transfer_pulse_loop_task_view:'

@@ -1,0 +1,47 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2018 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""ZI connection information edition tools.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+
+from enaml.core.api import Conditional
+from enaml.widgets.api import Field, Label, Form, CheckBox, ObjectCombo
+from enaml.layout.api import hbox, vbox, grid, align
+from enaml.stdlib.fields import IntField
+
+from ecpy.instruments.api import BaseConnection
+from ecpy.app.icons.api import get_icon
+
+
+
+enamldef ZIConnection(BaseConnection):main:
+    """Connection allowing to enter directly the ZI device number.
+
+    This allows to support ZI intruments.
+
+    """
+    
+    attr serial_number =''
+    
+    title = self.declaration.id
+
+
+    constraints = [hbox(sn_lab, sn_val)]
+
+    Label: sn_lab:
+        text = 'Device number'
+    Field: sn_val:
+        enabled << not main.read_only
+        text := serial_number
+
+    gather_infos => ():
+        return {'serial_number': serial_number}

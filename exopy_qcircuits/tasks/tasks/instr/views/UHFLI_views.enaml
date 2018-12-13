@@ -1,0 +1,576 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2017-2018 by EcpyQcircuits Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""View Alazar related tasks.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+from inspect import cleandoc
+from textwrap import fill
+from collections import OrderedDict
+
+
+from enaml.core.api import Conditional, Include
+from enaml.widgets.api import (FileDialog, PushButton, GroupBox, Label, Field, ObjectCombo, CheckBox,
+                               Container)
+from enaml.layout.api import grid, vbox, hbox, factory, align
+
+from ecpy.tasks.api import (EVALUATER_TOOLTIP,FORMATTER_TOOLTIP)
+from ecpy.utils.widgets.qt_completers import QtLineCompleter
+from ...base_instr_view import InstrView
+from ecpy.utils.widgets.dict_editor import DictEditor
+
+#from atom.api import Enum
+
+
+
+
+enamldef Signal_path(Container):
+    
+    attr model
+    constraints = [hbox(k, v), k.width == v.width]
+    padding = 1
+    
+    ObjectCombo: k:
+        items <<  ['Demodulator 1', 'Demodulator 2', 'Demodulator 3','Demodulator 4',
+                   'Demodulator 5','Demodulator 6','Demodulator 7','Demodulator 8',]
+        tool_tip = ('Demodulator from which the data will be take')
+        selected := model.key
+                
+    ObjectCombo: v:
+        items <<  ['r', 'x', 'y','phase','frequency',]
+        tool_tip = ('data to record')
+        selected := model.value
+       
+
+enamldef modified_values(Container):
+    """View to edit a key/value pair.
+
+    """
+    #: Reference to the key/value pair being edited
+    attr model
+    constraints = [hbox(k, v), 2*k.width <= v.width]
+    padding = 1
+
+    QtLineCompleter: k:
+        text := model.key
+        entries_updater = model.task.list_accessible_database_entries
+        tool_tip = ('Labels to change in the AWG txt file')
+        
+    QtLineCompleter: v:
+        text := model.value
+        entries_updater = model.task.list_accessible_database_entries
+        tool_tip = ('Value to insert instead of the label')
+        
+def load_sequence(core,file, task):
+    
+    seqfile = None
+    try:
+        seqfile = open(file,"r")
+    except FileNotFoundError as er:
+         cmd = 'ecpy.app.errors.signal'
+         msg = 'Failed to load sequence {}'.format(file)
+         core.invoke_command(cmd, dict(kind='error', message=msg))
+         return
+    if seqfile:
+        sequence= seqfile.read()
+        seqfile.close()
+        index = [];
+        i=0;
+        for s in sequence : 
+            if s=="_":
+                index.append(i)
+            i=i+1
+        para = []
+        for i in range(len(index)-1):
+            if not " " in sequence[index[i]:index[i+1]+1] and not "*" in sequence[index[i]:index[i+1]+1] and not "=" in sequence[index[i]:index[i+1]+1] and not "," in sequence[index[i]:index[i+1]+1]:
+                para.append(sequence[index[i]:index[i+1]+1])
+        new = OrderedDict.fromkeys(para, '')
+        for k in (e for e in task.modified_values if e in new):
+            new[k] = task.modified_values[k]
+        task.modified_values = new
+    
+
+enamldef parameter_to_set(Container):
+    """View to edit aparameter/index/value list.
+
+    """
+    #: Reference to the parameter/index/value list being edited
+    attr model
+    attr index :str = model.key[13:]
+    attr para :str = model.key[0:13]
+    attr ind :int = 0
+    constraints = [hbox(k, i ,ki, vtxt, v),
+                   ki.width == k.width, 
+                   k.width == v.width, 
+                   k.width == i.width, 
+                   vtxt.width == v.width/4,
+                   align('v_center', k, i, ki, vtxt, v)
+                   ]
+    padding = 1
+
+    ObjectCombo: k:
+        items <<  ['User Register', 'Oscillator   ', 'AWG Amplitude','Phase shift  ',
+                   'LowPass order','LowPass TC   ','Osc of Demod ','Trig of Demod',
+                   'Output1 Demod','Output2 Demod']
+        selected := para
+        #selected << model.key[0:13]
+        tool_tip =('Name of parameter. Ex Oscillator for oscillator 4')
+    Container:i:
+        Conditional:
+            condition << (para == 'Phase shift  ' or 'LowPass' in para or 'Demod' in para)
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8']
+                selected := index
+                #selected << model.key[-1]
+                tool_tip =('Index of demodulator. Ex 4 for demodulator 4')
+        Conditional:
+            condition << (para == 'Oscillator   ')
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8']
+                selected := index
+                #selected << model.key[-1]
+                tool_tip =('Index of oscllator. Ex 4 for oscillator 4')
+        Conditional:
+            condition << (para ==  'AWG Amplitude' )
+            ObjectCombo:
+                items <<  ['1','2']
+                selected := index
+                #selected << model.key[-1]
+                tool_tip =('Index of AWG. Ex 1 for AWG output 1')
+        Conditional:
+            condition << (para == 'User Register' )
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16']
+                selected := index
+                tool_tip =('Index of register. Ex 4 for User Register 4')
+            
+    Label: ki:
+        text << para + index
+        text >> model.key
+    Label: vtxt:
+        text = 'Value :'
+    Container:v:
+        Conditional:
+            condition << ( k.selected == 'LowPass order' ) 
+            ObjectCombo:
+                items << ['1','2','3','4','5','6','7','8']
+                selected := model.value
+                tool_tip =('Order number')
+        Conditional:
+            condition << ( k.selected == 'Osc of Demod ' ) 
+            ObjectCombo:
+                items << ['1','2','3','4','5','6','7','8']
+                selected := model.value
+                tool_tip =('Oscillator index')
+        Conditional:
+            condition << ('Trig' in  k.selected) 
+            ObjectCombo:
+                items << ['AWG Trigger 1 Rise','AWG Trigger 1 High','AWG Trigger 2 Rise','AWG Trigger 2 High',
+                          'AWG Trigger 3 Rise','AWG Trigger 3 High','AWG Trigger 4 Rise','AWG Trigger 4 High']
+                selected:= model.value
+        Conditional:
+            condition<<( k.selected != 'Osc of Demod ' and  k.selected !='LowPass order' and not 'Trig' in  k.selected)
+            QtLineCompleter:
+                text := model.value
+                entries_updater = model.task.list_accessible_database_entries
+                tool_tip =('''Value of parameter. Ex 30e3 for a frequency of 30 kHz.
+                           Oscillator's frequency musst be lower than 600 MHz.
+                           Warning : User Register's value will be rounded down to the last integer.
+                           AWH output take a number between 0 and 1 
+                           ( min and max of the signal output scale).
+                           Phase musst be in degree.
+                           Output are in Volt''')
+            
+
+
+enamldef ScopeDemodUHFLIView(InstrView): view:
+
+    constraints = [vbox(
+                    grid([instr_label, traces, average, averaging,
+                          samplingRate],
+                         [instr_selection, traces_val,
+                          average_val, averaging, samplingRate_val]),
+                    hbox(acquisition,acquisition2),
+                    customDemod),
+                    averaging.width == traces_val.width,
+                    acquisition.width == acquisition2.width
+                    ]
+
+    Label: traces:
+        text = 'Number of traces'
+    Field: traces_val:
+        text := task.tracesnumber
+
+    Label: average:
+        text = 'Average'
+    CheckBox: average_val:
+        checked := task.average
+
+    Container: averaging:     
+        Conditional:
+            condition << average_val.checked
+            Label:
+                text = 'Number of points'
+            Field:
+                text := task.Npoints
+
+    Label: samplingRate:
+        text = 'sampling rate'
+    ObjectCombo: samplingRate_val:
+        items << list(task.get_member('samplingRate').items)
+        selected := task.samplingRate
+
+    GroupBox: acquisition:
+        title = 'Channel 1 settings'
+        
+        constraints = [grid([delay, duration, freq,demod,trace],
+                            [delay_val, duration_val, freq_val,demod_val,trace_val]),
+                       freq_val.width == delay_val.width,
+                       delay_val.width == duration_val.width,
+                       demod_val.width==trace_val.width]
+        Label: freq:
+            text = 'Frequency (MHz)'
+        QtLineCompleter: freq_val:
+            text := task.freq
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''give only one demodulation frequency'''))
+
+        Label: delay:
+            text = 'Delay (ns)'
+        QtLineCompleter: delay_val:
+            text := task.delay
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc('''give the delay between the trigger and the beginning of the acquisition'''))
+
+        Label: duration:
+            text = 'Duration (ns)'
+        QtLineCompleter: duration_val:
+            text := task.duration
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''duration of the acquisition. If the acquisition should be cut in different part,
+                            give a list with the duration of each part (ex : [duration1,duration2,duration3])
+                            the acquisition duration would be the sum of the list.'''))
+        Label: demod:
+            text = 'Demodulation'
+        CheckBox: demod_val:
+            checked := task.demod
+            
+        Label: trace:
+            text = 'Trace'
+        CheckBox: trace_val:
+            checked := task.trace
+
+    GroupBox: acquisition2:
+        title = 'Channel 2 settings'
+        
+        constraints = [grid([delay2, duration2, freq2,demod2,trace2],
+                            [delay2_val, duration2_val, freq2_val,demod2_val,trace2_val]),
+                       freq2_val.width == delay2_val.width,
+                       delay2_val.width == duration2_val.width,
+                       demod2_val.width==trace2_val.width]
+        Label: freq2:
+            text = 'Frequency (MHz)'
+        QtLineCompleter: freq2_val:
+            text := task.freq2
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''give only one demodulation frequency'''))
+
+        Label: delay2:
+            text = 'Delay (ns)'
+        QtLineCompleter: delay2_val:
+            text := task.delay2
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc('''give the delay between the trigger and the beginning of the acquisition'''))
+
+        Label: duration2:
+            text = 'Duration (ns)'
+        QtLineCompleter: duration2_val:
+            text := task.duration2
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''duration of the acquisition. If the acquisition should be cut in different part,
+                            give a list with the duration of each part (ex : [duration1,duration2,duration3])
+                            the acquisition duration would be the sum of the list.'''))
+        Label: demod2:
+            text = 'Demodulation'
+        CheckBox: demod2_val:
+            checked := task.demod2
+            
+        Label: trace2:
+            text = 'Trace'
+        CheckBox: trace2_val:
+            checked := task.trace2
+  
+    
+    GroupBox: customDemod:
+        title = 'Custom Demodulation'
+
+        
+        Label: customDemodulation:
+            text = 'Function used for the demodulation'
+        QtLineCompleter: customDemod_val:
+            text := task.customDemod
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc('''list of 2 numpy array containing the two function that will be used for the demodulation
+                                     instead of cosinus and sinus. The first one will replace
+                                     cosinus, the second will replace sinus'''))
+
+enamldef DemodUHFLIView(InstrView): view:
+    
+    constraints = [vbox(
+                    grid([instr_label, numberOfAcquisition, average,averaging],
+                         [instr_selection, nbOfAqu_val,average_val,averaging]
+                          ),
+                    para),
+                    average.width == nbOfAqu_val.width,
+                    average.width == averaging.width
+                    ]
+
+    Label: numberOfAcquisition:
+        text = 'Acquisition number'
+    QtLineCompleter: nbOfAqu_val:
+        text := task.pointsnumber
+        entries_updater = task.list_accessible_database_entries
+    
+    Label: average:
+        text = 'Average'
+    CheckBox: average_val:
+        checked := task.average
+        
+    Container: averaging:     
+        Conditional:
+            condition << average_val.checked
+            Label:
+                text = 'Number of points'
+            QtLineCompleter:
+                text := task.Npoints
+                entries_updater = task.list_accessible_database_entries
+
+
+    GroupBox: para:
+        title = 'Sequence parameters'
+        constraints = [hbox(duration1,duration1_val,duration2,duration2_val,seqDuration,seqDuration_val),                      
+                        align('v_center', duration1, duration1_val,duration2, duration2_val, seqDuration, seqDuration_val),
+                        duration1.width == duration1_val.width,
+                        duration1.width == duration2_val.width,
+                        duration1.width == duration2.width,
+                        duration1.width == seqDuration.width,
+                        duration1.width == seqDuration_val.width
+                       ]
+        
+        Label: duration1:
+            text = 'Channel1 duration (ns):'
+        QtLineCompleter: duration1_val:
+            text := task.pulse_duration1
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''duration of the acquisition of the channel 1.
+                            Allows to set the integration time constante.'''))
+        Label: duration2:
+            text = 'Channel2 duration (ns):'
+        QtLineCompleter: duration2_val:
+            text := task.pulse_duration2
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''duration of the acquisition of the channel 2.
+                            Allows to set the integration time constante.'''))
+            
+        Label: seqDuration:
+            text = 'Sequence duration (ns):'
+        QtLineCompleter: seqDuration_val:
+            text := task.sequence_duration
+            entries_updater = task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''duration of the sequence'''))
+
+enamldef PulseTransferUHFLIView(InstrView): view:
+    
+    
+    constraints = [vbox(hbox(instr_label,instr_selection),
+                        hbox(file_cont,modulation), ed)]
+
+    Container: file_cont:
+
+
+        GroupBox: folder:
+
+            title = 'Text File'
+            constraints = [hbox(file, explore,seq_re),
+                            align('v_center', file, explore,seq_re)]
+
+            QtLineCompleter: file:
+                text := task.PulseSeqFile
+                tool_tip = fill(cleandoc('''text file containing the awg pulse sequence'''))
+            PushButton: explore:
+                text = 'Select Sequence'
+                hug_width = 'strong'
+                clicked ::
+                    file = FileDialog(mode = 'open_file',
+                                    title = 'Select a txt file',
+                                    filters = ['*.txt']
+                                    ).exec_()
+                    if file:
+                        task.PulseSeqFile = file
+                        load_sequence(view.root.core,file, task)
+            PushButton: seq_re:
+                enabled << bool(task.PulseSeqFile)
+                text = 'Refresh'
+                clicked ::
+                    load_sequence(view.root.core,file, task)
+
+                        
+    Container: modulation:
+
+        GroupBox: Modulation:
+            title = 'Modulation'
+            constraints = [hbox(modulation_1,mod1_val,modulation_2,mod2_val)]
+
+            Label: modulation_1:
+                text = 'Advance Modulation AWG output 1 :'
+            CheckBox: mod1_val:
+                checked := task.mod1
+            Label: modulation_2:
+                text = 'Advance Modulation AWG output 2 :'
+            CheckBox: mod2_val:
+                checked := task.mod2
+
+
+    DictEditor(modified_values): ed:
+        ed.mapping := task.modified_values
+        ed.operations = ('add', 'move', 'remove')
+        ed.attributes = {'task': task}
+
+enamldef SetParametersUHFLIView(InstrView): view:
+    
+    
+    constraints = [vbox(hbox(instr_label,instr_selection),ed)]
+
+
+    DictEditor(parameter_to_set): ed:
+        ed.mapping := task.parameterToSet
+        ed.operations = ('add', 'move', 'remove')
+        ed.attributes = {'task': task}
+        
+enamldef CloseAWGUHFLIView(InstrView): view:
+    
+    
+    constraints = [hbox(instr_label,instr_selection)]
+
+
+enamldef DAQDemodUHFLIView(InstrView): view:
+    constraints = [vbox(
+                    grid([instr_label, nbCol, nbRow,nbGrid,delay, average,repetition],
+                         [instr_selection, nbCol_val, nbRow_val, nbGrid_val,delay_val, average_val, repetition]),
+                         hbox(vbox(trigger,Control),
+                         SigDict)),
+                    nbCol.width == nbRow.width,
+                    nbCol.width == nbGrid.width,
+                    nbCol.width == delay.width,
+                    nbCol.width == repetition.width,
+                    average.width == nbCol.width,
+                    trigger.width == SigDict.width,
+                    Control.width == SigDict.width
+                    ]
+                        
+    Label: nbCol:
+        text = 'Number of points'
+    QtLineCompleter: nbCol_val:
+        text := task.numberCol
+        entries_updater = task.list_accessible_database_entries
+        tool_tip = fill(cleandoc('''Asking more than 100 points can entails communication problem'''))
+
+    Label: nbRow:
+        text = 'Number of traces'
+    QtLineCompleter: nbRow_val:
+        text := task.numberRow
+        entries_updater = task.list_accessible_database_entries
+
+    Label: nbGrid:
+        text = 'Number of Grids'
+    QtLineCompleter: nbGrid_val:
+        text := task.numberGrid
+        entries_updater = task.list_accessible_database_entries
+
+    Label: delay:
+        text = 'Delay (ns)'
+    QtLineCompleter: delay_val:
+        text := task.delay
+        tool_tip = fill(cleandoc('''Negative delay are possible'''))
+        entries_updater = task.list_accessible_database_entries
+    
+
+    Label: average:
+        text = 'Average'
+    CheckBox: average_val:
+        checked := task.average
+
+    Container: repetition:
+        Conditional:
+            condition << average_val.checked
+            Label:
+                text = 'Number of repetitions'
+            Field:
+                text := task.repetition
+
+    Container: trigger:
+        GroupBox:
+            title = 'Trigger'
+            constraints = [grid([chain,trig],[chain_val,trig_val]),
+                           chain.width==trig.width,
+                           chain.width==trig_val.width,
+                           chain_val.width==trig.width
+                           ]
+            Label : chain:
+                text  = 'Demodulator'
+            ObjectCombo: chain_val:
+                items << list(task.get_member('triggerChain').items)
+                tool_tip = fill(cleandoc('''Demodulator used to transfer the trigger. it musst be enable'''))
+                selected := task.triggerChain
+                
+            Label : trig:
+                text  = 'Trigger'
+            ObjectCombo: trig_val:
+                items << list(task.get_member('trigger').items)
+                selected := task.trigger
+
+    Container: Control:
+        GroupBox:
+            title = 'Options'
+            constraints = [grid([AWG,Row],[AWG_val,Row_val]),
+                           AWG.width==Row.width,
+                           AWG.width==Row_val.width,
+                           AWG_val.width==Row.width
+                           ]
+            Label : AWG:
+                text  = 'AWG Control'
+            CheckBox: AWG_val:
+                checked := task.AWGControl
+                tool_tip = fill(cleandoc('''Control the trace id thanks to the AWG sequence'''))
+
+                
+            Label : Row:
+                text  = 'Row repetition'
+            CheckBox: Row_val:
+                checked := task.RowRepetition
+                tool_tip = fill(cleandoc('''Repeat trace instead of repeat grid for the average mode'''))
+
+
+    Container : SigDict:
+        GroupBox:
+            title = 'data to record (demodulator, data)'
+            DictEditor(Signal_path): ed:
+                ed.mapping := task.signalDict
+                ed.operations = ('add', 'move', 'remove')
+                ed.attributes = {'task': task}
+            

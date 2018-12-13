@@ -1,0 +1,55 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2016 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Views for the ENA tasks.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+import re
+from textwrap import fill
+
+from atom.api import set_default, Value, observe
+from enaml.core.api import Conditional
+from enaml.layout.api import grid, vbox, hbox, factory
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, Container,
+                               CheckBox)
+from enaml.stdlib.fields import IntField, FloatField
+from enaml.validator import Validator
+
+from ecpy.tasks.api import EVALUATER_TOOLTIP
+from ecpy.utils.widgets.qt_completers import QtLineCompleter
+from ecpy_hqc_legacy.utils.layouts import auto_grid_layout
+from ecpy_hqc_legacy.utils.widgets.pair_editor import PairEditor
+from ...base_instr_view import InstrView
+        
+enamldef PSAGetSpectrumView(InstrView): view:
+    """View for the PSAGetSpectrumTask.
+
+    """
+    constraints = [hbox(instr_label,instr_selection)]
+    
+enamldef PSAGetFrequencyPointView(InstrView): view:
+    """View for the AWGSetVppTask.
+
+    """
+    constraints = [factory(auto_grid_layout)]
+
+    Label: freq_lab:
+        text = 'Frequency (GHz)'
+    Field: freq_val:
+        text := task.frequency
+        tool_tip = fill("The frequency you want to get the power output of.")
+    
+    Label: pow_lab:
+        text = 'Power (dBm)'
+    QtLineCompleter: pow_val:
+        text := task.power_level
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("The nominal power output of the source.")
