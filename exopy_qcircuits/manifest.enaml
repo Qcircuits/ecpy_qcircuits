@@ -77,6 +77,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.alazar_views:DemodAlazarView'
                     instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
                 Task:
+                    task = 'alazar_tasks:VNAAlazarTask'
+                    view = 'views.alazar_views:VNAAlazarView'
+                    instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']                
+                Task:
                     task = 'ena_tasks:ENASweepTask'
                     view = 'views.ena_views:ENASweepView'
                     instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
@@ -123,3 +127,6 @@ enamldef QcircuitsManifest(PluginManifest):
             Shape:
                 shape = 'arbitrary_shape:ArbitraryShape'
                 view = 'views.arbitrary_shape_view:ArbitraryShapeView'
+            Shape:
+                shape = 'gaussian_shape:SechShape'
+                view = 'views.gaussian_shape_view:SechShapeView'

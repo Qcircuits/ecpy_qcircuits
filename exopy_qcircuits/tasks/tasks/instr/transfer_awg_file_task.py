@@ -405,8 +405,8 @@ class TransferAWGFileTask(InstrumentTask):
         task = builder(cls, config, dependencies)
 
         if 'sequence' in config:
-            pulse_dep = dependencies['ecpy.pulses.item']
-            builder = pulse_dep['ecpy_pulses.RootSequence']
+            pulse_dep = dependencies['exopy.pulses.item']
+            builder = pulse_dep['exopy_pulses.RootSequence']
             conf = config['sequence']
             seq = builder.build_from_config(conf, dependencies)
             task.sequence = seq
