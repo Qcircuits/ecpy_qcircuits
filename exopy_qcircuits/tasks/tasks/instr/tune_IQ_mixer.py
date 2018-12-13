@@ -15,9 +15,9 @@ import numpy as np
 
 from atom.api import (Enum, Unicode, Value)
 
-from ecpy.tasks.api import (InstrumentTask, validators)
+from exopy.tasks.api import (InstrumentTask, validators)
 #signal analyzer driver
-import ecpy_qcircuits.instruments.drivers.visa.rohde_and_schwarz_psa as sa
+import exopy_qcircuits.instruments.drivers.visa.rohde_and_schwarz_psa as sa
 
 SA_SWEEPING = 0x0
 SA_REAL_TIME = 0x1

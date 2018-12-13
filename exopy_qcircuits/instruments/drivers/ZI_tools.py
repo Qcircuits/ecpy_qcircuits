@@ -1,6 +1,6 @@
 #-*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2017-2018 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+# Copyright 2017-2018 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD license.
 #

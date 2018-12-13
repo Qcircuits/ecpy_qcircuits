@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2018 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+# Copyright 2018 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD license.
 #
@@ -18,8 +18,8 @@ from enaml.widgets.api import Field, Label, Form, CheckBox, ObjectCombo
 from enaml.layout.api import hbox, vbox, grid, align
 from enaml.stdlib.fields import IntField
 
-from ecpy.instruments.api import BaseConnection
-from ecpy.app.icons.api import get_icon
+from exopy.instruments.api import BaseConnection
+from exopy.app.icons.api import get_icon
 
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2017-2018 by EcpyQcircuits Authors, see AUTHORS for more details.
+# Copyright 2017-2018 by exopyQcircuits Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD license.
 #
@@ -22,10 +22,10 @@ from enaml.widgets.api import (FileDialog, PushButton, GroupBox, Label, Field, O
                                Container)
 from enaml.layout.api import grid, vbox, hbox, factory, align
 
-from ecpy.tasks.api import (EVALUATER_TOOLTIP,FORMATTER_TOOLTIP)
-from ecpy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.tasks.api import (EVALUATER_TOOLTIP,FORMATTER_TOOLTIP)
+from exopy.utils.widgets.qt_completers import QtLineCompleter
 from ...base_instr_view import InstrView
-from ecpy.utils.widgets.dict_editor import DictEditor
+from exopy.utils.widgets.dict_editor import DictEditor
 
 #from atom.api import Enum
 
@@ -75,7 +75,7 @@ def load_sequence(core,file, task):
     try:
         seqfile = open(file,"r")
     except FileNotFoundError as er:
-         cmd = 'ecpy.app.errors.signal'
+         cmd = 'exopy.app.errors.signal'
          msg = 'Failed to load sequence {}'.format(file)
          core.invoke_command(cmd, dict(kind='error', message=msg))
          return

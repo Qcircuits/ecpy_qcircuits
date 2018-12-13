@@ -16,9 +16,9 @@ from enaml.layout.api import factory
 
 from textwrap import fill
 
-from ecpy.tasks.api import InstrTaskView, EVALUATER_TOOLTIP
-from ecpy.utils.widgets.qt_completers import QtLineCompleter
-from ecpy_hqc_legacy.utils.layouts import auto_grid_layout
+from exopy.tasks.api import InstrTaskView, EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy_hqc_legacy.utils.layouts import auto_grid_layout
 from ...base_instr_view import InstrView
 
 

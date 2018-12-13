@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2015-2016 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+# Copyright 2015-2016 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
 # Distributed under the terms of the BSD license.
 #
@@ -15,7 +15,7 @@ from __future__ import (division, unicode_literals, print_function,
 #import numpy as np
 #from atom.api import set_default
 
-from ecpy.tasks.api import InstrumentTask
+from exopy.tasks.api import InstrumentTask
 from atom.api import Unicode
 
 class AWGSetDCOffsetTask(InstrumentTask):

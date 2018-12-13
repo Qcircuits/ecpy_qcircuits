@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# Copyright 2015-2016 by EcpyHqcLegacy Authors, see AUTHORS for more details.
+# Copyright 2015-2016 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
 # DiUnicodeibuted under the terms of the BSD license.
 #
@@ -237,14 +237,6 @@ class DemodAlazarTask(InstrumentTask):
 
         self.write_in_database('Demod', answerDemod)
         self.write_in_database('Trace', answerTrace)
-
-
-
-
-
-
-
-
 
 
 class VNAAlazarTask(InstrumentTask):

@@ -128,10 +128,6 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.alazar_views:VNAAlazarView'
                     instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']                
                 Task:
-                    task = 'alazar_tasks:VNAAlazarTask'
-                    view = 'views.alazar_views:VNAAlazarView'
-                    instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
-                Task:
                     task = 'ena_tasks:ENASweepTask'
                     view = 'views.ena_views:ENASweepView'
                     instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
