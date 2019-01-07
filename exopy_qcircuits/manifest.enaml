@@ -76,9 +76,13 @@ enamldef QcircuitsManifest(PluginManifest):
                     driver = 'alazar935x:Alazar935x'
                     manufacturer = 'AlazarTech'
                     model = 'ATS9350'
+                Driver:
+                    driver = 'labbrick:LabBrickLMS103'
+                    manufacturer = 'LabBrick'
+                    model = 'LMS103'
+                    kind = 'RF source'
                     
-                    
-                    
+                                       
             Drivers:
                 path='ZI'
                 starter = 'exopy_qcircuit.starter.ZI'
@@ -87,6 +91,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     driver = 'UHFLI:UHFLI'
                     manufacturer = 'ZurichInstruments'
                     model = 'UHFLI'
+                Driver:
+                    driver = 'HDAWG:HDAWG'
+                    manufacturer = 'ZurichInstruments'
+                    model = 'HDAWG'
                     
     Extension:
         id = 'instrumentsqcircuit.starters'
@@ -167,6 +175,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     task = 'UHFLI_tasks:DAQDemodUHFLITask'
                     view = 'views.UHFLI_views:DAQDemodUHFLIView'
                     instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'HDAWG_tasks:PulseTransferHDAWGTask'
+                    view = 'views.HDAWG_views:PulseTransferHDAWGView'
+                    instruments = ['exopy_qcircuits.Qcircuits.HDAWG']
                 Task:
                     task = 'AWG_tasks:AWGSetDCOffsetTask'
                     view = 'views.AWG_views:AWGSetDCOffsetView'

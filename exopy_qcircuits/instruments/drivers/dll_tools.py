@@ -59,7 +59,7 @@ class DllLibrary(object):
         if cls._instance is not None:
             return cls._instance
         else:
-            return super(DllLibrary, cls).__new__(cls, *args, **kwargs)
+            return super(DllLibrary, cls).__new__(cls)
 
     def __init__(self, path, **kwargs):
 
