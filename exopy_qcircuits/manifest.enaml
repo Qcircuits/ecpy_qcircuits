@@ -180,6 +180,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.HDAWG_views:PulseTransferHDAWGView'
                     instruments = ['exopy_qcircuits.Qcircuits.HDAWG']
                 Task:
+                    task = 'HDAWG_tasks:SetParametersHDAWGTask'
+                    view = 'views.HDAWG_views:SetParametersHDAWGView'
+                    instruments = ['exopy_qcircuits.Qcircuits.HDAWG']
+                Task:
                     task = 'AWG_tasks:AWGSetDCOffsetTask'
                     view = 'views.AWG_views:AWGSetDCOffsetView'
                     instruments = ['exopy_qcircuits.Qcircuits.TaborAWG']
