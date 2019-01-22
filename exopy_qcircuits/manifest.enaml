@@ -186,7 +186,7 @@ enamldef QcircuitsManifest(PluginManifest):
                 Task:
                     task = 'AWG_tasks:AWGSetVppTask'
                     view = 'views.AWG_views:AWGSetVppView'
-                    instruments = ['exopy_qcircuits.Qcircuits.TaborAWG']
+                    instruments = ['exopy_qcircuits.Qcircuits.TaborAWG','exopy_hqc_legacy.Legacy.AWG']
                 Task:
                     task = 'tune_IQ_mixer:TuneIQMixerTask'
                     view = 'views.tune_IQ_mixer_views:TuneIQmixerView'
@@ -205,6 +205,12 @@ enamldef QcircuitsManifest(PluginManifest):
                     # Way to declare instrument dependencies without specifying
                     # any instrument.
                     instruments = [None]
+                    
+                Task:
+                    task = 'get_awg_config_task:GetAWGConfigTask'
+                    view = ('views.get_awg_config_task_view:'
+                            'GetAWGConfigView')
+                    instruments = ['exopy_hqc_legacy.Legacy.AWG']
 
     Extension:
         id = 'contexts'
@@ -233,3 +239,6 @@ enamldef QcircuitsManifest(PluginManifest):
             Shape:
                 shape = 'gaussian_shape:SechShape'
                 view = 'views.gaussian_shape_view:SechShapeView'
+            Shape:
+                shape = 'gaussian_shape:DragShape'
+                view = 'views.gaussian_shape_view:DragShapeView'

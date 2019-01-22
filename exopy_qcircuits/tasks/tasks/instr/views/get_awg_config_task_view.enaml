@@ -1,0 +1,37 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2017 by exopyHqcLegacy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Views for the microwave sources related tasks.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+from enaml.stdlib.fields import FloatField
+from enaml.core.api import Conditional
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, CheckBox)
+from enaml.layout.api import factory
+
+from textwrap import fill
+
+from exopy.tasks.api import InstrTaskView, EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy_hqc_legacy.utils.layouts import auto_grid_layout
+from ...base_instr_view import InstrView
+
+
+enamldef GetAWGConfigView(InstrView): view:
+    """View for the getter of the AWG configuration.
+
+    """
+    #: Attribute set by the parent view if the task is embedded inside a
+    #: LoopTask
+    attr in_loop : bool = False
+
+    constraints = [factory(auto_grid_layout)]
+

@@ -51,5 +51,9 @@ class AWGSetVppTask(InstrumentTask):
             self.start_driver()
         
         channel_driver = self.driver.get_channel(int(self.channel))
-        channel_driver.set_Vpp(float(self.format_and_eval_string(self.
-                                                                 amplitude)))
+        #channel_driver.set_Vpp(float(self.format_and_eval_string(self.
+                                                                #amplitude)))
+        #The functions for the Tabor and the Tektro awg are not compatible
+        #to be corrected
+        channel_driver.vpp = float(self.format_and_eval_string(self.
+                                                                 amplitude))

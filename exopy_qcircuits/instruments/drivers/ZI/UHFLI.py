@@ -152,8 +152,8 @@ class UHFLI(ZIInstrument):
         tracedata = [[],[]]
         for i in range(num_records):
             if not i in dataUnusable:
-                for c in channel:
-                    tracedata[c].append(dataRecorded[i][0]['wave'][c][:delaySample[c]+np.sum(length[c])])
+                for c in range(len(channel)):
+                    tracedata[channel[c]].append(dataRecorded[i][0]['wave'][c][:delaySample[channel[c]]+np.sum(length[channel[c]])])
         if max(len(tracedata[0]),len(tracedata[1]))>=recordsPerCapture:
             for c in channel:
                 tracedata[c] = np.array(tracedata[c])[:recordsPerCapture,delaySample[c]:delaySample[c]+np.sum(length[c])]
@@ -168,7 +168,7 @@ class UHFLI(ZIInstrument):
         coses=[]
         sines=[]
 
-        for c in channel:
+        for c in range(2):
             if demodCosinus:         
                 coses.append(np.cos(np.arange(np.sum(length[c]))*2*np.pi*freq[c]/samplingRate))
                 sines.append(np.sin(np.arange(np.sum(length[c]))*2*np.pi*freq[c]/samplingRate))
@@ -261,18 +261,22 @@ class UHFLI(ZIInstrument):
         return answerDemod, answerTrace
         
     
-    def get_demodLI(self,recordsPerCapture,average,Npoints,channel):
+    def get_demodLI(self,recordsPerCapture,average,Npoints,channel,demod,powerBool,AWGcontrol):
+            
         if ['1'] == channel:
-            self.daq.setInt('/%s/demods/3/enable' % self.device, 1) # enable the stream data of the demodulator 4
+            self.daq.setInt('/%s/demods/%d/enable' % (self.device,demod[0]), 1) # enable the stream data of input1
             self.daq.sync()
         elif ['2'] == channel:
-            self.daq.setInt('/%s/demods/2/enable' % self.device, 1) # enable the stream data of the demodulator 3
+            self.daq.setInt('/%s/demods/%d/enable' % (self.device,demod[1]), 1) # enable the stream data of input2
             self.daq.sync()
         else :
             # enable the stream data of the demodulators 3 and 4
-            self.daq.set([['/%s/demods/2/enable' % self.device, 1],['/%s/demods/3/enable' % self.device, 1]])  
+            self.daq.set([['/%s/demods/%d/enable' % (self.device,demod[0]), 1],['/%s/demods/%d/enable' % (self.device,demod[1]), 1]])  
             self.daq.sync()
             time.sleep(0.1)
+
+        if AWGcontrol:
+            self.daq.setInt('/%s/awgs/0/enable' %self.device, 1)
 
         data1x=[];
         data1y=[];
@@ -280,40 +284,59 @@ class UHFLI(ZIInstrument):
         data2y=[];
         time1=[]
         time2=[]
+        path1 = '/%s/demods/%d/sample' % (self.device,demod[0])
+        path2 = '/%s/demods/%d/sample' % (self.device,demod[1])
         data=self.daq.poll(0.1,500,1,True)
         if '1' in channel:
-            if '/%s/demods/3/sample' % self.device in data.keys():
-                data1x= data['/%s/demods/3/sample' % self.device]['x']
-                data1y = data['/%s/demods/3/sample' % self.device]['y']
-                time1 = data['/%s/demods/3/sample' % self.device]['timestamp']
+            if path1 in data.keys():
+                data1x= data[path1]['x']
+                data1y = data[path1]['y']
+                time1 = data[path1]['timestamp']
         if '2' in channel:
-            if '/%s/demods/2/sample' % self.device in data.keys():
-                data2x= data['/%s/demods/2/sample' % self.device]['x']
-                data2y = data['/%s/demods/2/sample' % self.device]['y']
-                time2 = data['/%s/demods/2/sample' % self.device]['timestamp']
-        if math.isnan(np.mean(data1x)) or math.isnan(np.mean(data1y)):
-                print(str(data))
+            if path2 in data.keys():
+                data2x= data[path2 % self.device]['x']
+                data2y = data[path2 % self.device]['y']
+                time2 = data[path2 % self.device]['timestamp']
+     #   if math.isnan(np.mean(data1x)) or math.isnan(np.mean(data1y)):
+   #             print(str(data))
         while(len(data1x)<recordsPerCapture*('1' in channel) or len(data2x)<recordsPerCapture*('2' in channel)):
             data=self.daq.poll(0.1,500,1,True)
             if '1' in channel:
-                if '/%s/demods/3/sample' % self.device in data.keys():
-                    data1x = np.concatenate((data1x,data['/dev2375/demods/3/sample']['x']))
-                    data1y = np.concatenate((data1y,data['/dev2375/demods/3/sample']['y']))
-                    time1 =  np.concatenate((time1,data['/%s/demods/3/sample' % self.device]['timestamp']))
+                if path1 in data.keys():
+                    data1x = np.concatenate((data1x,data[path1]['x']))
+                    data1y = np.concatenate((data1y,data[path1]['y']))
+                    time1 =  np.concatenate((time1,data[path1]['timestamp']))
             if '2' in channel: 
-                if '/%s/demods/2/sample' % self.device in data.keys():
-                    data2x = np.concatenate((data2x,data['/dev2375/demods/2/sample']['x']))
-                    data2y = np.concatenate((data2y,data['/dev2375/demods/2/sample']['y']))
-                    time2 =  np.concatenate((time2,data['/%s/demods/2/sample' % self.device]['timestamp']))
-        self.daq.setInt('/dev2375/demods/3/enable', 0); # close the stream data of the demodulator 4  
-        self.daq.setInt('/dev2375/demods/2/enable', 0); # close the stream data of the demodulator 4  
+                if path2 in data.keys():
+                    data2x = np.concatenate((data2x,data[path2]['x']))
+                    data2y = np.concatenate((data2y,data[path2]['y']))
+                    time2 =  np.concatenate((time2,data[path2]['timestamp']))
+        self.daq.setInt('/%s/demods/%s/enable'% (self.device,demod[0]), 0); # close the stream data of input1
+        self.daq.setInt('/%s/demods/%s/enable'% (self.device,demod[1]), 0); # close the stream data of input2
         if ['1','2'] == channel:
             n=0;
             for i in range(min(len(time1),len(time2))):
                 if time1[i]!=time2[i]:
                     n+=1;
-            print(str(n) + ' error')
+            print(str(n) + ' errors in demodulation')
             print(str(len(time1)-len(time2)))
+        if '1' in channel:
+            if math.isnan(np.mean(data1x)):
+                listNan = [math.isnan(i) for i in data1x]
+                data1x=np.delete(data1x,np.where(listNan))
+                data1y=np.delete(data1y,np.where(listNan))
+                print('Warning NaN value detect in data1 :%d NaN value, %d value correct' %(np.sum(listNan),len(data1x)))
+                if len(data1x)<recordsPerCapture:
+                    recordsPerCapture = len(data1x)
+        if '2' in channel:
+            if math.isnan(np.mean(data2x)):
+                listNan = [math.isnan(i) for i in data2x]
+                data2x=np.delete(data2x,np.where(listNan))
+                data2y=np.delete(data2y,np.where(listNan))
+                print('Warning NaN value detect in data2 :%d NaN value, %d value correct' %(np.sum(listNan),len(data2x)))
+                if len(data2x)<recordsPerCapture:
+                    recordsPerCapture = len(data2x)
+                
         if '1' in channel:
                 data1x= data1x[:recordsPerCapture]
                 data1y= data1y[:recordsPerCapture]
@@ -321,11 +344,17 @@ class UHFLI(ZIInstrument):
                 data2x= data2x[:recordsPerCapture]
                 data2y= data2y[:recordsPerCapture]
         answerTypeDemod=[];
-        for string in channel:
-            answerTypeDemod = answerTypeDemod+ [(string+'I',str(data1x.dtype)),
-                               (string+'Q',str(data1y.dtype))]
-              
-        
+        if '1' in channel:
+            answerTypeDemod = answerTypeDemod+ [('1I',str(data1x.dtype)),
+                               ('1Q',str(data1y.dtype))]
+            if powerBool :
+                answerTypeDemod = answerTypeDemod+ [('1P',str(data1x.dtype))]
+        if '2' in channel:
+            answerTypeDemod = answerTypeDemod+ [('2I',str(data2x.dtype)),
+                               ('2Q',str(data2y.dtype))]
+            if powerBool :
+                answerTypeDemod = answerTypeDemod+ [('2P',str(data2x.dtype))]
+                            
         if average:
             if Npoints==0 or Npoints ==1:
                 answerDemod = np.zeros(1, dtype=answerTypeDemod)
@@ -334,7 +363,7 @@ class UHFLI(ZIInstrument):
 
         else:
             answerDemod = np.zeros(recordsPerCapture, dtype=answerTypeDemod)
-        
+                
         if average:
             if Npoints==0 or Npoints ==1:
                 if '1' in channel:
@@ -342,11 +371,18 @@ class UHFLI(ZIInstrument):
                     ans1Q = np.mean(data1y)
                     answerDemod['1I']= ans1I
                     answerDemod['1Q']= ans1Q
+                    if powerBool:
+                        ansR = np.mean(data1x**2+data1y**2)
+                        answerDemod['1P']= ansR
+
                 if '2' in channel:
                     ans2I = np.mean(data2x)
                     ans2Q = np.mean(data2y)
                     answerDemod['2I']= ans2I
                     answerDemod['2Q']= ans2Q
+                    if powerBool:
+                        ansR = np.mean(data2x**2+data2y**2)
+                        answerDemod['2P']= ansR
             else :
                 if '1' in channel:
                     data1x = data1x.reshape((-1,Npoints))
@@ -355,6 +391,10 @@ class UHFLI(ZIInstrument):
                     ans1Q = data1y.mean(axis=0)
                     answerDemod['1I']= ans1I
                     answerDemod['1Q']= ans1Q
+                    if powerBool:
+                        ansR = np.mean((data2x**2+data2y**2).reshape((-1,Npoints)),axis=0)
+                        answerDemod['1P']= ansR
+                        
                 if '2' in channel:
                     data2x = data2x.reshape((-1,Npoints))
                     data2y = data2y.reshape((-1,Npoints))
@@ -362,25 +402,33 @@ class UHFLI(ZIInstrument):
                     ans2Q = data2y.mean(axis=0)
                     answerDemod['2I']= ans2I
                     answerDemod['2Q']= ans2Q
+                    if powerBool:
+                        ansR = np.mean((data2x**2+data2y**2).reshape((-1,Npoints)),axis=0)
+                        answerDemod['2P']= ansR
                 
         else:
             if '1' in channel:
                 answerDemod['1I']= data1x[:recordsPerCapture]
-                answerDemod['1Q']= data1y[:recordsPerCapture] 
+                answerDemod['1Q']= data1y[:recordsPerCapture]
+                if powerBool:
+                    ansR = data2x**2+data2y**2
+                    answerDemod['1P']= ansR
             if '2' in channel:
                 answerDemod['2I']= data2x[:recordsPerCapture]
-                answerDemod['2Q']= data2y[:recordsPerCapture] 
+                answerDemod['2Q']= data2y[:recordsPerCapture]
+                if powerBool:
+                    ansR = data2x**2+data2y**2
+                    answerDemod['2P']= ansR
         return answerDemod
 
 
     def get_DAQmodule(self, DAM, dimensions, signalID,signal_paths):
-        print(signalID)
         data={i:[] for i in signalID}
         # Start recording data.
         DAM.set('dataAcquisitionModule/endless', 0);
         t0 = time.time()
         # Record data in a loop with timeout.
-        timeout =dimensions[0]*dimensions[1]*dimensions[2]*0.001+10
+        timeout =dimensions[0]*dimensions[1]*dimensions[2]*dimensions[3]*0.001+10
         DAM.execute()
         #while not DAM.finished():
         while not DAM.finished():

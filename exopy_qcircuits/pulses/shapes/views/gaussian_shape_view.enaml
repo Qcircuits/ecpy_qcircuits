@@ -110,3 +110,34 @@ enamldef SechShapeView(AbstractShapeView):
                         text := shape.width
                         entries_updater = item.parent.get_accessible_vars
                         tool_tip = 'Sech(x/width*sqrt(pi/2)) rising/folding time FWHM (not stand. dev.)'
+                        
+enamldef DragShapeView(AbstractShapeView):
+    """ View for a gaussian pulse.
+
+    """
+    attr item
+    attr shape
+
+    GroupBox:
+        title = 'Drag'
+        Splitter: spl:
+            SplitItem:
+                Container:
+                    constraints = [hbox(amp_lab, amp_val),
+                       align('v_center', amp_lab, amp_val)]
+                    Label: amp_lab:
+                        text = 'amplitude'
+                    QtLineCompleter: amp_val:
+                        hug_width = 'ignore'
+                        text := shape.amplitude
+                        tool_tip = 'Relative amplitude of the pulse (should be between -1.0 and 1.0)'
+            SplitItem:
+                Container:
+                    constraints << [hbox(width_lab, width_val),
+                                    align('v_center', width_lab, width_val)]
+                    Label: width_lab:
+                        text = 'Width'
+                    QtLineCompleter: width_val:
+                        text := shape.width
+                        entries_updater = item.parent.get_accessible_vars
+                        tool_tip = 'Standard deviation of the gaussian (not FWHM)'
