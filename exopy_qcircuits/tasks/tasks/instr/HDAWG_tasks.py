@@ -4,9 +4,9 @@
 #
 # DiUnicodeibuted under the terms of the BSD license.
 #
-# The full license is in the file LICENCE, diUnicodeibuted with this software.
+# The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
-"""Task perform measurements for the UFHLI zurick instrument.
+"""Task perform measurements for the UFHLI zurich instruments.
 
 """
 from __future__ import (division, unicode_literals, print_function,
@@ -28,6 +28,15 @@ from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
 VAL_REAL = validators.Feval(types=numbers.Real)
 
 VAL_INT = validators.Feval(types=numbers.Integral)# -*- coding: utf-8 -*-
+
+def eval_with_units(task,evaluee):
+    value = task.format_and_eval_string(evaluee[0])
+    unit = str(evaluee[1])
+    unitlist = ['','none', 'ns', 'GHz' ,'clock_samples', 's', 'µs','ns_to_clck'] #from views
+    multlist  = [1,1,1e-9,1e9,1,1,1e-6,1/3.33] #corresponding to above list
+    multiplier = multlist[np.argwhere(np.array(unitlist)==unit)[0,0]]
+    value = value * multiplier
+    return value
         
 class PulseTransferHDAWGTask(InstrumentTask):
     """ Give a pulse sequence to HDAWG
@@ -37,12 +46,8 @@ class PulseTransferHDAWGTask(InstrumentTask):
     
     modified_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
-# =============================================================================
-#     mod1 = Bool(False).tag(pref=True)
-# 
-#     mod2 = Bool(False).tag(pref=True)
-# =============================================================================
-
+    reference_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
+                                                    ordered_dict_from_pref))
     
 # =============================================================================
 #     def check(self, *args, **kwargs):
@@ -62,7 +67,7 @@ class PulseTransferHDAWGTask(InstrumentTask):
 #        
 #         return test, traceback
 # =============================================================================
-    
+           
     def perform(self):
         """
         """
@@ -96,9 +101,12 @@ class PulseTransferHDAWGTask(InstrumentTask):
         
         awg_program = textwrap.dedent(sequence)
         
+#        for l, v in self.modified_values.items():
+#            v=str(self.format_and_eval_string(v))
+#            awg_program = awg_program.replace(l, v)
         for l, v in self.modified_values.items():
-            v=str(self.format_and_eval_string(v))
-            awg_program = awg_program.replace(l, v)
+            value = str(eval_with_units(v))
+            awg_program = awg_program.replace(l, value)        
         
         self.driver.TransfertSequence(awg_program)
 
@@ -144,7 +152,7 @@ class SetParametersHDAWGTask(InstrumentTask):
 #                        cleandoc('''User Register's value must be between 0 and 2^32''')
 #                        
 #        return test, traceback
-    
+   
     def perform(self):
         """
         """
@@ -166,64 +174,36 @@ class SetParametersHDAWGTask(InstrumentTask):
 #                   'LowPass order','LowPass TC','Osc of Demod ','Trig of Demod',
 #                   'Output1 Demod','Output2 Demod']
         for p, v in self.parameterToSet.items():
-            if p[:-1].rstrip() == 'Waveform Amplitude':
-                channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            if v[0] == 'Waveform Amplitude':
+                channel = self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 awg = channel//ch_group
                 channel = channel%ch_group
                 exp_setting = exp_setting + [['/%s/awgs/%d/outputs/%d/amplitude' % (device,awg,channel), value]]
-            elif p[:-1].rstrip() == 'Oscillator':
-                channel =self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif v[0] == 'Oscillator':
+                channel = self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting = exp_setting + [['/%s/oscs/%d/freq' % (device, channel), value]]
-            elif p[:-1].rstrip() == 'Phase shift':
-                channel =self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif v[0] == 'Phase shift':
+                channel =self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting + [['/%s/sines/%d/phaseshift' % (device, channel), value]]
-            elif p[:-1].rstrip() == 'User Register':
-                channel =self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
-                exp_setting=exp_setting + [['/%s/awgs/0/userregs/%d' % (device, channel), value]]
-            elif p[:-1].rstrip() == 'Amplitude Range':
-                channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif v[0] == 'User Register':
+                channel =self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
+                exp_setting=exp_setting + [['/%s/awgs/0/userregs/%d' % (device, channel), np.floor(value)]]
+            elif v[0] == 'Amplitude Range':
+                channel = self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting + [['/%s/sigouts/%d/range' % (device, channel), value]]
+            elif v[0] == 'Hold':
+                channel = self.format_and_eval_string(v[1])-1
+                value = int(bool(v[2]=='On'))
+                awg = channel//ch_group
+                exp_setting=exp_setting + [['/%s/awgs/%d/outputs/%d/hold' % (device,awg,channel), value]]
             else:
                 print('not an interfaced variable')
-                
-#            elif ' TC ' in p:
-#                channel = self.format_and_eval_string(p[-1])-1
-#                value = self.format_and_eval_string(v)
-#                exp_setting=exp_setting + [['/%s/demods/%d/timeconstant' % (device, channel), value]]
-#            elif ' order' in p:
-#                channel = self.format_and_eval_string(p[-1])-1
-#                value = self.format_and_eval_string(v)
-#                exp_setting=exp_setting + [['/%s/demods/%d/order' % (device, channel), value]]
-#            elif 'Osc of' in p:
-#                channel = self.format_and_eval_string(p[-1])-1
-#                value = self.format_and_eval_string(v)-1
-#                exp_setting=exp_setting + [['/%s/demods/%d/oscselect' % (device, channel), value]]
-#            elif 'Output' in p:
-#                output= self.format_and_eval_string(p[6])-1
-#                channel = self.format_and_eval_string(p[-1])-1
-#                value = self.format_and_eval_string(v)
-#                exp_setting=exp_setting + [['/%s/sigouts/%d/amplitudes/%d' % (device, output, channel), value]]
-#            elif 'Trig' in p:
-#                channel = self.format_and_eval_string(p[-1])-1
-#                if 'High' in v:
-#                    value = 0x1000000
-#                else:
-#                    value = 0x100000
-#                value = value*2**(int(v[12])-1)
-#                exp_setting=exp_setting + [['/%s/demods/%d/trigger'% (device,channel), value]]
-#            else :
-#                if p[-2]=='1':
-#                    channel = self.format_and_eval_string(p[-2:])-1
-#                else:
-#                    channel = self.format_and_eval_string(p[-1])-1
-#                value = self.format_and_eval_string(v)
-#                exp_setting=exp_setting + [['/%s/awgs/0/userregs/%d' % (device, channel), value]]
-                
+                                
         self.driver.daq.set(exp_setting)
         self.driver.daq.sync()
         

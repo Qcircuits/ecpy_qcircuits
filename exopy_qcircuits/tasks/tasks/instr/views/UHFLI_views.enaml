@@ -427,7 +427,7 @@ enamldef PulseTransferUHFLIView(InstrView): view:
                 enabled << bool(task.PulseSeqFile)
                 text = 'Refresh'
                 clicked ::
-                    load_sequence(view.root.core,file, task)
+                    load_sequence(view.root.core,file.text, task)
 
                         
     Container: modulation:
