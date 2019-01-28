@@ -10,7 +10,8 @@ Python package zhinst from Zurick Instruments need to be install
 
 from __future__ import (division, unicode_literals, print_function,
                         absolute_import)
-
+from ..driver_tools import (InstrIOError, instrument_property,
+                            secure_communication)
 import sys
 from subprocess import call
 import ctypes
@@ -260,7 +261,7 @@ class UHFLI(ZIInstrument):
        
         return answerDemod, answerTrace
         
-    
+    @secure_communication()    
     def get_demodLI(self,recordsPerCapture,average,Npoints,channel,demod,powerBool,AWGcontrol):
             
         if ['1'] == channel:
@@ -286,7 +287,7 @@ class UHFLI(ZIInstrument):
         time2=[]
         path1 = '/%s/demods/%d/sample' % (self.device,demod[0])
         path2 = '/%s/demods/%d/sample' % (self.device,demod[1])
-        data=self.daq.poll(0.1,500,1,True)
+        data=self.daq.poll(0.1,500,0x0004,True)
         if '1' in channel:
             if path1 in data.keys():
                 data1x= data[path1]['x']
@@ -294,13 +295,13 @@ class UHFLI(ZIInstrument):
                 time1 = data[path1]['timestamp']
         if '2' in channel:
             if path2 in data.keys():
-                data2x= data[path2 % self.device]['x']
-                data2y = data[path2 % self.device]['y']
-                time2 = data[path2 % self.device]['timestamp']
+                data2x= data[path2]['x']
+                data2y = data[path2 ]['y']
+                time2 = data[path2]['timestamp']
      #   if math.isnan(np.mean(data1x)) or math.isnan(np.mean(data1y)):
    #             print(str(data))
         while(len(data1x)<recordsPerCapture*('1' in channel) or len(data2x)<recordsPerCapture*('2' in channel)):
-            data=self.daq.poll(0.1,500,1,True)
+            data=self.daq.poll(0.1,500,0x0004,True)
             if '1' in channel:
                 if path1 in data.keys():
                     data1x = np.concatenate((data1x,data[path1]['x']))
@@ -313,6 +314,8 @@ class UHFLI(ZIInstrument):
                     time2 =  np.concatenate((time2,data[path2]['timestamp']))
         self.daq.setInt('/%s/demods/%s/enable'% (self.device,demod[0]), 0); # close the stream data of input1
         self.daq.setInt('/%s/demods/%s/enable'% (self.device,demod[1]), 0); # close the stream data of input2
+        if AWGcontrol:
+            self.daq.setInt('/%s/awgs/0/enable' %self.device, 0)
         if ['1','2'] == channel:
             n=0;
             for i in range(min(len(time1),len(time2))):

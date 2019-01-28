@@ -27,6 +27,7 @@ from exopy.utils.widgets.qt_completers import QtLineCompleter
 from ...base_instr_view import InstrView
 from exopy.utils.widgets.dict_editor import DictEditor
 from exopy.utils.widgets.dict_list_editor import DictListEditor
+from exopy_qcircuits.utils.widgets.dict_list_editor import DictListEditor4
 
 #from atom.api import Enum
 
@@ -59,9 +60,9 @@ enamldef modified_values(Container):
     """View to edit a key/value pair.
 
     """
-    #: Reference to the key/value pair being edited
+    #: Reference to the key/value pair being edited       
     attr model
-    constraints = [hbox(k, v), 2*k.width <= v.width]
+    constraints = [hbox(k, v0, v1), 2*k.width <= v0.width, k.width == v1.width]
     padding = 1
 
     QtLineCompleter: k:
@@ -69,10 +70,16 @@ enamldef modified_values(Container):
         entries_updater = model.task.list_accessible_database_entries
         tool_tip = ('Labels to change in the AWG txt file')
         
-    QtLineCompleter: v:
-        text := model.value
+    QtLineCompleter: v0:
+        text := model.value0
         entries_updater = model.task.list_accessible_database_entries
         tool_tip = ('Value to insert instead of the label')
+        
+    ObjectCombo: v1:
+        items <<  ['none', 'ns','MHz','V','kHz','ns_to_clck','clock_samples','s', 'µs','mV','GHz']
+        tool_tip = ('Unit of the item')
+        selected := model.value1
+        
         
 def load_sequence(core,file, task):
     
@@ -109,81 +116,90 @@ enamldef parameter_to_set(Container):
     """
     #: Reference to the parameter/index/value list being edited
     attr model
-    attr index :str = model.key[13:]
-    attr para :str = model.key[0:13]
-    constraints = [hbox(k, i ,ki, vtxt, v),
-                   ki.width == k.width, 
-                   k.width == v.width, 
-                   k.width == i.width, 
-                   vtxt.width == v.width/4,
-                   align('v_center', k, i, ki, vtxt, v)
+
+    constraints = [hbox(k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3),
+                   k.width == v0txt.width,
+                   k.width == v1txt.width,
+                   k.width == v2txt.width,
+                   k.width == v3txt.width,
+                   k.width*2 == v0.width,
+                   k.width*2 == v2.width,
+                   k.width == v1.width,
+                   
+                   k.width == v3.width, 
+                   align('v_center',k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3)
                    ]
     padding = 1
-
-    ObjectCombo: k:
-        items <<  ['User Register', 'Oscillator   ', 'AWG Amplitude','Phase shift  ',
-                   'LowPass order','LowPass TC   ','Osc of Demod ','Trig of Demod',
+    Label: k:
+        text = model.key
+        
+    Label: v0txt:
+        text = 'Para :'
+        
+    ObjectCombo: v0:
+        items <<  ['User Register', 'Oscillator', 'AWG Amplitude','Phase shift',
+                   'LowPass order','LowPass TC','Osc of Demod','Trigger of Demod',
                    'Output1 Demod','Output2 Demod']
-        selected := para
-        #selected << model.key[0:13]
+        selected := model.value0
         tool_tip =('Name of parameter. Ex Oscillator for oscillator 4')
-    Container:i:
+        
+    Label: v1txt:
+        text = 'Index :'    
+        
+    Container:v1:
         Conditional:
-            condition << (para == 'Phase shift  ' or 'LowPass' in para or 'Demod' in para)
+            condition << (v0.selected == 'Phase shift' or 'LowPass' in v0.selected or 'Demod' in v0.selected)
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8']
-                selected := index
+                selected := model.value1
                 #selected << model.key[-1]
                 tool_tip =('Index of demodulator. Ex 4 for demodulator 4')
         Conditional:
-            condition << (para == 'Oscillator   ')
+            condition << (v0.selected == 'Oscillator')
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8']
-                selected := index
+                selected := model.value1
                 #selected << model.key[-1]
                 tool_tip =('Index of oscllator. Ex 4 for oscillator 4')
         Conditional:
-            condition << (para ==  'AWG Amplitude' )
+            condition << (v0.selected ==  'AWG Amplitude' )
             ObjectCombo:
                 items <<  ['1','2']
-                selected := index
+                selected := model.value1
                 #selected << model.key[-1]
                 tool_tip =('Index of AWG. Ex 1 for AWG output 1')
         Conditional:
-            condition << (para == 'User Register' )
+            condition << (v0.selected == 'User Register' )
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16']
-                selected := index
+                selected := model.value1
                 tool_tip =('Index of register. Ex 4 for User Register 4')
             
-    Label: ki:
-        text << para + index
-        text >> model.key
-    Label: vtxt:
+    Label: v2txt:
         text = 'Value :'
-    Container:v:
+    Container:v2:
         Conditional:
-            condition << ( k.selected == 'LowPass order' ) 
+            condition << ( v0.selected == 'LowPass order' ) 
             ObjectCombo:
                 items << ['1','2','3','4','5','6','7','8']
-                selected := model.value
+                selected := model.value2
                 tool_tip =('Order number')
         Conditional:
-            condition << ( k.selected == 'Osc of Demod ' ) 
+            condition << ( v0.selected == 'Osc of Demod' ) 
             ObjectCombo:
                 items << ['1','2','3','4','5','6','7','8']
-                selected := model.value
+                selected := model.value2
                 tool_tip =('Oscillator index')
         Conditional:
-            condition << ('Trig' in  k.selected) 
+            condition << ('Trig' in  v0.selected) 
             ObjectCombo:
                 items << ['AWG Trigger 1 Rise','AWG Trigger 1 High','AWG Trigger 2 Rise','AWG Trigger 2 High',
                           'AWG Trigger 3 Rise','AWG Trigger 3 High','AWG Trigger 4 Rise','AWG Trigger 4 High']
-                selected:= model.value
+                selected:= model.value2
         Conditional:
-            condition<<( k.selected != 'Osc of Demod ' and  k.selected !='LowPass order' and not 'Trig' in  k.selected)
+            condition<<( v0.selected != 'Osc of Demod' and  v0.selected !='LowPass order' and not 'Trig' in  v0.selected)
             QtLineCompleter:
-                text := model.value
+                text := model.value2
                 entries_updater = model.task.list_accessible_database_entries
                 tool_tip =('''Value of parameter. Ex 30e3 for a frequency of 30 kHz.
                            Oscillator's frequency musst be lower than 600 MHz.
@@ -191,9 +207,14 @@ enamldef parameter_to_set(Container):
                            AWH output take a number between 0 and 1 
                            ( min and max of the signal output scale).
                            Phase musst be in degree.
-                           Output are in Volt''')
-            
-
+                           Output are in Volt''')        
+    Label: v3txt:
+        text = 'Unit :'
+    ObjectCombo: v3:
+        items <<  ['none', 'ns','MHz','V','kHz','ns_to_clck','clock_samples','s', 'µs','mV','GHz']
+        tool_tip = ('Unit of the item')
+        selected := model.value3
+   
 
 enamldef ScopeDemodUHFLIView(InstrView): view:
 
@@ -412,7 +433,7 @@ enamldef PulseTransferUHFLIView(InstrView): view:
     
     
     constraints = [vbox(hbox(instr_label,instr_selection),
-                        hbox(file_cont,modulation), ed)]
+                        hbox(file_cont,modulation,Start), ed)]
 
     Container: file_cont:
 
@@ -458,20 +479,30 @@ enamldef PulseTransferUHFLIView(InstrView): view:
                 text = 'Advance Modulation AWG output 2 :'
             CheckBox: mod2_val:
                 checked := task.mod2
+                
+    Container: Start:
 
+        GroupBox: start:
+            title = 'AWG Run'
+            constraints = [hbox(text ,bool_val)]
 
-    DictEditor(modified_values): ed:
+            Label: text:
+                text = 'AWG auto-start'
+            CheckBox: bool_val:
+                checked := task.autoStart
+
+    DictListEditor4(modified_values): ed:
         ed.mapping := task.modified_values
         ed.operations = ('add', 'move', 'remove')
         ed.attributes = {'task': task}
-
+        
 enamldef SetParametersUHFLIView(InstrView): view:
     
     
     constraints = [vbox(hbox(instr_label,instr_selection),ed)]
 
 
-    DictEditor(parameter_to_set): ed:
+    DictListEditor4(parameter_to_set): ed:
         ed.mapping := task.parameterToSet
         ed.operations = ('add', 'move', 'remove')
         ed.attributes = {'task': task}

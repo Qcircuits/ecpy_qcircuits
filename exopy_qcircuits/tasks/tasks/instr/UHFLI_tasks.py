@@ -30,6 +30,16 @@ VAL_REAL = validators.Feval(types=numbers.Real)
 
 VAL_INT = validators.Feval(types=numbers.Integral)# -*- coding: utf-8 -*-
 
+
+def eval_with_units(task,evaluee):
+    value = task.format_and_eval_string(evaluee[0])
+    unit = str(evaluee[1])
+    unitlist = ['','none', 'ns','MHz','V','kHz','ns_to_clck','clock_samples','s', 'µs','mV','GHz'] #from views
+    multlist  = [1,1,1e-9,1e6,1,1e3,0.225,1,1,1e-6,1e-3,1e9] #corresponding to above list
+    multiplier = multlist[np.argwhere(np.array(unitlist)==unit)[0,0]]
+    value = value * multiplier
+    return value
+
 class ScopeDemodUHFLITask(InstrumentTask):
     """ Get the raw or averaged quadratures of the signal.
         Can also get raw or averaged traces of the signal.
@@ -306,8 +316,9 @@ class PulseTransferUHFLITask(InstrumentTask):
     mod1 = Bool(False).tag(pref=True)
 
     mod2 = Bool(False).tag(pref=True)
-
     
+    autoStart = Bool(True).tag(pref=True)
+     
     def check(self, *args, **kwargs):
         """
         """
@@ -366,18 +377,15 @@ class PulseTransferUHFLITask(InstrumentTask):
         awg_program = textwrap.dedent(sequence)
         
         for l, v in self.modified_values.items():
-            v=str(self.format_and_eval_string(v))
+            v=str(eval_with_units(self,v))
             awg_program = awg_program.replace(l, v)
         
         self.driver.TransfertSequence(awg_program)
 
-        # Start the AWG in single-shot mode.
-        self.driver.daq.setInt('/%s/awgs/0/enable' %device, 1)
+        # Start the AWG in single-shot mode if autoStart is True
+        self.driver.daq.setInt('/%s/awgs/0/enable' %device, self.autoStart)
         self.driver.daq.sync()
 
-
-
-        
 class SetParametersUHFLITask(InstrumentTask):
     """ Set Lock-in, AWG and Ouput Parameters of UHFLI.
         
@@ -427,49 +435,46 @@ class SetParametersUHFLITask(InstrumentTask):
         exp_setting=[]
         
         for p, v in self.parameterToSet.items():
-            if p[:3] == 'AWG':
-                channel =self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            if v[0][:3] == 'AWG':
+                channel =self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting+ [['/%s/awgs/0/outputs/%d/amplitude' % (device, channel), value]]
-            elif p[:4] == 'Osci':
-                channel =self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif v[0][:4] == 'Osci':
+                channel =self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting+ [['/%s/oscs/%d/freq' % (device, channel), value]]
-            elif p[:3] == 'Pha':
-                channel =self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif v[0][:3] == 'Pha':
+                channel =self.format_and_eval_string(v[1])-1
+                value = self.format_and_eval_string(v[-2])
                 exp_setting=exp_setting+ [['/%s/demods/%d/phaseshift' % (device, channel), value]]
-            elif ' TC ' in p:
-                channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif ' TC ' in v[0]:
+                channel = self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting+ [['/%s/demods/%d/timeconstant' % (device, channel), value]]
-            elif ' order' in p:
-                channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif ' order' in v[0]:
+                channel = self.format_and_eval_string(v[1])-1
+                value = self.format_and_eval_string(v[-2])
                 exp_setting=exp_setting+ [['/%s/demods/%d/order' % (device, channel), value]]
-            elif 'Osc of' in p:
-                channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)-1
+            elif 'Osc of' in v[0]:
+                channel = self.format_and_eval_string(v[1])-1
+                value = self.format_and_eval_string(v[-2])-1
                 exp_setting=exp_setting+ [['/%s/demods/%d/oscselect' % (device, channel), value]]
-            elif 'Output' in p:
-                output= self.format_and_eval_string(p[6])-1
-                channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+            elif 'Output' in v[0]:
+                output= self.format_and_eval_string(v[0][6])-1
+                channel = self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting+ [['/%s/sigouts/%d/amplitudes/%d' % (device, output, channel), value]]
-            elif 'Trig' in p:
-                channel = self.format_and_eval_string(p[-1])-1
-                if 'High' in v:
+            elif 'Trig' in v[0]:
+                channel = self.format_and_eval_string(v[1])-1
+                if 'High' in v[-2]:
                     value = 0x1000000
                 else:
                     value = 0x100000
-                value = value*2**(int(v[12])-1)
+                value = value*2**(int(v[-2][12])-1)
                 exp_setting=exp_setting+ [['/%s/demods/%d/trigger'% (device,channel), value]]
             else :
-                if p[-2]=='1':
-                    channel = self.format_and_eval_string(p[-2:])-1
-                else:
-                    channel = self.format_and_eval_string(p[-1])-1
-                value = self.format_and_eval_string(v)
+                channel = self.format_and_eval_string(v[1])-1
+                value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting+ [['/%s/awgs/0/userregs/%d' % (device, channel), value]]
                 
         self.driver.daq.set(exp_setting)
