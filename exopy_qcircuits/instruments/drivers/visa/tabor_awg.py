@@ -194,8 +194,9 @@ class TaborAWGChannel(BaseInstrument):
                 raise InstrIOError(cleandoc('''Instrument did not set
                                                 correctly the DC offset'''))
     
+    @instrument_property
     @secure_communication()
-    def Vpp(self):
+    def vpp(self):
         ''' Voltage peak peak getter method
         
         '''
@@ -204,13 +205,14 @@ class TaborAWGChannel(BaseInstrument):
             vpp = self._AWG.ask(':VOLT?')
             return float(vpp)
         
+    @vpp.setter
     @secure_communication()
-    def set_Vpp(self,value):
+    def vpp(self,value):
         ''' Voltage peak peak setter method
         
         '''
         val = np.round(float(value),3)
-        if (val > 0.15) or (val < 0.05):
+        if (val > 2.0) or (val < 0.05):
             raise InstrIOError(cleandoc('Set Vpp out of bounds'))
         with self.secure():
             self._AWG.write('INST {}'.format(self._channel))

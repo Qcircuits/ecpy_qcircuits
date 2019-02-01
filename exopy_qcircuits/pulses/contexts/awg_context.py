@@ -78,7 +78,7 @@ class TaborAWGContext(BaseContext):
         items, errors = self.preprocess_sequence(sequence)
 
         if errors:
-            return False, {}, errors
+            return False, errors, {}
 
         duration = max([pulse.stop for pulse in items])
         if sequence.time_constrained:
@@ -110,7 +110,10 @@ class TaborAWGContext(BaseContext):
             array_M1[channel] = np.zeros(sequence_length, dtype=np.int8)
             # numpy array for marker2 init False. For AWG M2 = 0 = off
             array_M2[channel] = np.zeros(sequence_length, dtype=np.int8)
-
+        
+        # on Tabor AWG, the markers are shifted by 12 points
+        marker_shift = 12
+            
         for pulse in [i for i in items if i.duration != 0.0]:
 
             waveform = pulse.waveform
@@ -124,9 +127,11 @@ class TaborAWGContext(BaseContext):
                 array_analog[channel][start_index:stop_index] +=\
                     (np.rint(8191*waveform)).astype(np.uint16)
             elif channeltype == 'M1' and pulse.kind == 'Logical':
-                array_M1[channel][start_index:stop_index] += waveform
+                array_M1[channel][start_index+marker_shift:
+                                          stop_index+marker_shift] += waveform
             elif channeltype == 'M2' and pulse.kind == 'Logical':
-                array_M2[channel][start_index:stop_index] += waveform
+                array_M2[channel][start_index+marker_shift:
+                                          stop_index+marker_shift] += waveform
             else:
                 msg = 'Selected channel does not match kind for pulse {} ({}).'
                 return (False, dict(),
@@ -138,7 +143,7 @@ class TaborAWGContext(BaseContext):
         traceback = {}
         for channel in used_channels:
             analog = array_analog[channel]
-            if analog.max() > 16383 or analog.min() < 0:
+            if analog.max() > 2**14-1 or analog.min() < 0:
                 mes = 'Analogical values out of range.'
                 traceback['{}_A'.format(channel)] = mes
 
@@ -164,13 +169,31 @@ class TaborAWGContext(BaseContext):
         # Byte arrays to send to the AWG
         to_send = {}
         for channel in used_channels:
+            # Prepare the markers arrays. The markers have a 2 points time
+            # resolution and are encoded on the last 8 points of each 16
+            # time points groups
+            array_M1_prepared = np.zeros((sequence_length//16,16),dtype=np.int8)
+            array_M2_prepared = np.zeros((sequence_length//16,16),dtype=np.int8)
+            
+            array_M1_prepared[:,8:] = array_M1[channel][::2].reshape(
+                                                       (sequence_length//16,8))
+            array_M1_prepared = array_M1_prepared.flatten()
+            
+            array_M2_prepared[:,8:] = array_M2[channel][::2].reshape(
+                                                       (sequence_length//16,8))
+            array_M2_prepared = array_M2_prepared.flatten()
+
+            file = open('seq.txt','w')
+            array_M1_prepared.tofile(file)
+            
             # Convert to sixteen bits integers
             array = array_analog[channel] +\
-                array_M1[channel]*(2**14) + array_M2[channel]*(2**15)
+                array_M1_prepared*(2**14) + array_M2_prepared*(2**15)
             # Creating and filling a byte array for each channel.
             aux = np.empty(2*sequence_length, dtype=np.uint8)
             aux[::2] = array % 2**8
             aux[1::2] = array // 2**8
+            
             to_send[int(channel[-1])] = np.ndarray.tobytes(aux)
 
         # Build sequence infos
@@ -188,6 +211,88 @@ class TaborAWGContext(BaseContext):
 
         # If we do have a driver proceed to the transfer.
         return self._transfer_sequences(driver, to_send, infos)
+    
+
+    def compile_sequence(self, sequence):
+        """Compile the pulse sequence.
+
+        As this context does not support any special sequence it will always
+        get a flat list of pulses.
+
+        Parameters
+        ----------
+        sequence : RootSequence
+            Sequence to compile and transfer.
+
+        Returns
+        -------
+        table : dict
+            Contains all the compiled waveforms.
+
+        errors : dict
+            Errors that occured during compilation.
+
+
+        """
+        items, errors = self.preprocess_sequence(sequence)
+
+        if errors:
+            return False, {}, errors, {}
+
+        duration = max([pulse.stop for pulse in items])
+        if sequence.time_constrained:
+            # Total length of the sequence to send to the AWG
+            duration = sequence.duration
+        if duration%16 != 0:
+            duration = 16*(duration//16+1)
+
+        # Collect the channels used in the pulses' sequence
+        used_channels = set([pulse.channel[:3] for pulse in items])
+
+        # Coefficient to convert the start and stop of pulses in second and
+        # then in index integer for array
+        time_to_index = TIME_CONVERSION[self.time_unit]['s'] * \
+            self.sampling_frequency
+
+        # Length of the sequence
+        sequence_length = int(round(duration * time_to_index))
+
+        # create 3 array for each used_channels
+        array_wvfm = {}
+        array_M1 = {}
+        array_M2 = {}
+        for channel in used_channels:
+            # numpy array for analog channels
+            array_wvfm[channel] = np.zeros(sequence_length)
+            # numpy array for marker1 init False. For AWG M1 = 0 = off
+            array_M1[channel] = np.zeros(sequence_length)
+            # numpy array for marker2 init False. For AWG M2 = 0 = off
+            array_M2[channel] = np.zeros(sequence_length)
+
+        for pulse in [i for i in items if i.duration != 0.0]:
+
+            waveform = pulse.waveform
+            channel = pulse.channel[:3]
+            channeltype = pulse.channel[4:]
+
+            start_index = int(round(pulse.start*time_to_index))
+            stop_index = start_index + len(waveform)
+
+            if channeltype == 'A' and pulse.kind == 'Analogical':
+                array_wvfm[channel][start_index:stop_index] +=waveform
+            elif channeltype == 'M1' and pulse.kind == 'Logical':
+                array_M1[channel][start_index:stop_index] += waveform
+            elif channeltype == 'M2' and pulse.kind == 'Logical':
+                array_M2[channel][start_index:stop_index] += waveform
+            else:
+                msg = 'Selected channel does not match kind for pulse {} ({}).'
+                return (dict(),
+                        {'Kind issue': msg.format(pulse.index,
+                                                  (pulse.kind, pulse.channel))}
+                       )
+
+        return array_wvfm, array_M1, array_M2, None
+
 
     def list_sequence_infos(self):
         """List the sequence infos returned after a successful completion.
