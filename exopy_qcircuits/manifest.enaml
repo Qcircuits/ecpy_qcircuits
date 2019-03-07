@@ -200,6 +200,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.AWG_views:AWGSetVppView'
                     instruments = ['exopy_qcircuits.Qcircuits.TaborAWG','exopy_hqc_legacy.Legacy.AWG']
                 Task:
+                    task = 'AWG_tasks:AWGSetMarkerTask'
+                    view = 'views.AWG_views:AWGSetMarkerView'
+                    instruments = ['exopy_qcircuits.Qcircuits.TaborAWG','exopy_hqc_legacy.Legacy.AWG']
+                Task:
                     task = 'tune_IQ_mixer:TuneIQMixerTask'
                     view = 'views.tune_IQ_mixer_views:TuneIQmixerView'
                     instruments = ['exopy_qcircuits.Qcircuits.TaborAWG']
@@ -252,5 +256,5 @@ enamldef QcircuitsManifest(PluginManifest):
                 shape = 'gaussian_shape:SechShape'
                 view = 'views.gaussian_shape_view:SechShapeView'
             Shape:
-                shape = 'gaussian_shape:DragShape'
-                view = 'views.gaussian_shape_view:DragShapeView'
+                shape = 'gaussian_shape:GaussienDerivativeShape'
+                view = 'views.gaussian_shape_view:GaussienDerivativeShapeView'

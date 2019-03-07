@@ -16,7 +16,11 @@ from __future__ import (division, unicode_literals, print_function,
 #from atom.api import set_default
 
 from exopy.tasks.api import InstrumentTask
-from atom.api import Unicode
+from atom.api import (Unicode,Enum,Typed)
+from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
+from collections import OrderedDict
+from exopy_qcircuits.instruments.drivers.visa_tools import InstrIOError
+
 
 class AWGSetDCOffsetTask(InstrumentTask):
     """ Set the DC offset voltage of a given AWG channel
@@ -57,3 +61,61 @@ class AWGSetVppTask(InstrumentTask):
         #to be corrected
         channel_driver.vpp = float(self.format_and_eval_string(self.
                                                                  amplitude))
+        
+class AWGSetMarkerTask(InstrumentTask):
+    """ Set Markers of a given AWG channel
+
+    """    
+    
+    Marker_Dict = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
+                                                    ordered_dict_from_pref))
+
+    def perform(self):
+        """
+        """
+        if not self.driver:
+            self.start_driver()
+        for l, v in self.Marker_Dict.items():
+            channel_driver = self.driver.get_channel(int(l[2]))
+            if l[-1] == '1':
+                channel_driver._AWG.write("SOURce{}:MARK1:VOLTage:HIGH {}"
+                            .format(channel_driver._channel, float(self.format_and_eval_string(v[0]))))
+                channel_driver._AWG.write("SOURce{}:MARK1:VOLTage:LOW {}"
+                            .format(channel_driver._channel, float(self.format_and_eval_string(v[1]))))
+            else:
+                channel_driver._AWG.write("SOURce{}:MARK2:VOLTage:HIGH {}"
+                            .format(channel_driver._channel, float(self.format_and_eval_string(v[0]))))
+                channel_driver._AWG.write("SOURce{}:MARK2:VOLTage:LOW {}"
+                            .format(channel_driver._channel, float(self.format_and_eval_string(v[1]))))   
+            
+        for l, v in self.Marker_Dict.items():
+            channel_driver = self.driver.get_channel(int(l[2]))
+            if l[-1] == '1':
+                result = channel_driver._AWG.ask_for_values("SOURce{}:MARK1:VOLTage:HIGH?"
+                                                      .format(channel_driver._channel))[0]
+                if abs(result - float(self.format_and_eval_string(v[0]))) > 10**-12:
+                    raise InstrIOError(cleandoc('''AWG channel {} did not set
+                                                    correctly the marker1 high
+                                                    voltage'''.format(channel_driver._channel)))
+                result = channel_driver._AWG.ask_for_values("SOURce{}:MARK1:VOLTage:LOW?"
+                                                      .format(channel_driver._channel))[0]
+                if abs(result - float(self.format_and_eval_string(v[1]))) > 10**-12:
+                    raise InstrIOError(cleandoc('''AWG channel {} did not set
+                                                    correctly the marker1 low
+                                                    voltage'''.format(channel_driver._channel)))
+            else:
+                result = channel_driver._AWG.ask_for_values("SOURce{}:MARK2:VOLTage:HIGH?"
+                                                      .format(channel_driver._channel))[0]
+                if abs(result - float(self.format_and_eval_string(v[0]))) > 10**-12:
+                    raise InstrIOError(cleandoc('''AWG channel {} did not set
+                                                    correctly the marker2 high
+                                                    voltage'''.format(channel_driver._channel)))
+                result = channel_driver._AWG.ask_for_values("SOURce{}:MARK2:VOLTage:LOW?"
+                                                      .format(channel_driver._channel))[0]
+                if abs(result - float(self.format_and_eval_string(v[1]))) > 10**-12:
+                    raise InstrIOError(cleandoc('''AWG channel {} did not set
+                                                    correctly the marker2 low
+                                                    voltage'''.format(channel_driver._channel)))
+                
+                
+                

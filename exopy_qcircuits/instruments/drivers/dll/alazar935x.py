@@ -134,10 +134,10 @@ class Alazar935x(DllInstrument):
         
         ## JEREMY
         if not self.clock_set:
-            board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
-                                  500000000,
-                                  ats.CLOCK_EDGE_RISING,
-                                  0)
+#            board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
+ #                                 500000000,
+ #                                 ats.CLOCK_EDGE_RISING,
+#                                  0)
             self.clock_set = True
             
             #board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,

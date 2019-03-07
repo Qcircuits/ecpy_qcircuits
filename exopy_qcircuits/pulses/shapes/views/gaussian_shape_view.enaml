@@ -111,7 +111,7 @@ enamldef SechShapeView(AbstractShapeView):
                         entries_updater = item.parent.get_accessible_vars
                         tool_tip = 'Sech(x/width*sqrt(pi/2)) rising/folding time FWHM (not stand. dev.)'
                         
-enamldef DragShapeView(AbstractShapeView):
+enamldef GaussienDerivativeShapeView(AbstractShapeView):
     """ View for a gaussian pulse.
 
     """
@@ -119,7 +119,7 @@ enamldef DragShapeView(AbstractShapeView):
     attr shape
 
     GroupBox:
-        title = 'Drag'
+        title = 'GaussienDerivative'
         Splitter: spl:
             SplitItem:
                 Container:

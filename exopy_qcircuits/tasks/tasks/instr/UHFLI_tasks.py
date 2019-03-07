@@ -34,8 +34,9 @@ VAL_INT = validators.Feval(types=numbers.Integral)# -*- coding: utf-8 -*-
 def eval_with_units(task,evaluee):
     value = task.format_and_eval_string(evaluee[0])
     unit = str(evaluee[1])
-    unitlist = ['','none', 'ns','MHz','V','kHz','ns_to_clck','clock_samples','s', 'µs','mV','GHz'] #from views
-    multlist  = [1,1,1e-9,1e6,1,1e3,0.225,1,1,1e-6,1e-3,1e9] #corresponding to above list
+
+    unitlist = ['','none','ns','µs','s','kHz','MHz','GHz','mV','V','ns_to_clck','clock_samples'] #from views
+    multlist  = [1,1,1e-9,1e-6,1,1e3,1e6,1e9,1e-3,1,0.225,1] #corresponding to above list
     multiplier = multlist[np.argwhere(np.array(unitlist)==unit)[0,0]]
     value = value * multiplier
     return value
@@ -327,7 +328,7 @@ class PulseTransferUHFLITask(InstrumentTask):
         file = None      
         try:
             file = open(self.PulseSeqFile,"r")
-        except FileNotFoundError as er:
+        except FileNotFoundError:
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                 cleandoc('''File not found''')

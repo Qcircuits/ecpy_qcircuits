@@ -216,7 +216,7 @@ class SechShape(AbstractShape):
         # The sqrt(pi/2) factor is so that the fft of sec(x/sigma) is sec(x*sigma)
         return self._cache['amplitude']/np.cosh((time-(time[0]+time[-1])/2.0)*np.sqrt(np.pi/2)/(self._cache['width']))
     
-class DragShape(AbstractShape):
+class GaussienDerivativeShape(AbstractShape):
     """ Basic gaussian pulse with a variable amplitude.
 
     """
@@ -250,7 +250,7 @@ class DragShape(AbstractShape):
             Flag indicating whether or not the evaluation succeeded.
 
         """
-        res = super(DragShape, self).eval_entries(root_vars, sequence_locals,
+        res = super(GaussienDerivativeShape, self).eval_entries(root_vars, sequence_locals,
                                                     missing, errors)
 
         if res:
@@ -278,7 +278,7 @@ class DragShape(AbstractShape):
 
         """
         amp = self._cache['amplitude']
-        sigma = self._cache['sigma']
+        sigma = self._cache['width']
         t0 = (time[0]+time[-1])/2
-        pulse_shape = [-(t-t0)/sigma**2*amp*np.exp(-(t-t0)**2/2/sigma**2) for t in time]
+        pulse_shape = [-(t-t0)/(time[-1]-time[0])*4*amp*np.exp(-(t-t0)**2/2/sigma**2) for t in time]
         return np.asarray(pulse_shape)

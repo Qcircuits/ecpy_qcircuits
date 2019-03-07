@@ -323,6 +323,14 @@ class UHFLI(ZIInstrument):
                     n+=1;
             print(str(n) + ' errors in demodulation')
             print(str(len(time1)-len(time2)))
+        diff = np.diff(time1)
+        mini = np.min(diff) 
+        number=0;
+        for i in range(len(diff)):
+            if 1.5*mini <= diff[i]:
+                number = number+1
+        if number!=0:
+            print("%d trigger miss" %number)
         if '1' in channel:
             if math.isnan(np.mean(data1x)):
                 listNan = [math.isnan(i) for i in data1x]

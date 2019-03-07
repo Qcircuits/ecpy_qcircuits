@@ -25,10 +25,43 @@ from enaml.validator import Validator
 
 from exopy.tasks.api import EVALUATER_TOOLTIP
 from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.utils.widgets.dict_list_editor import DictListEditor
 from exopy_hqc_legacy.utils.layouts import auto_grid_layout
 from exopy_hqc_legacy.utils.widgets.pair_editor import PairEditor
 from ...base_instr_view import InstrView
         
+
+
+enamldef Marker_Dict(Container):
+    
+    attr model
+    constraints = [hbox(channel_lab,channel_val, high_lab,high_val, low_lab,low_val), 
+                    channel_lab.width == high_lab.width,
+                    channel_lab.width == low_lab.width,
+                    channel_lab.width == channel_val.width/4,
+                    channel_lab.width == high_val.width/4,
+                    channel_lab.width == low_val.width/4]
+    padding = 1
+    
+    Label: channel_lab:
+        text = 'Channel'
+    ObjectCombo: channel_val:
+        items << ['CH1M1','CH1M2','CH2M1','CH2M2','CH3M1','CH3M2','CH4M1','CH4M2']
+        tool_tip = fill("The Marker you want to set.")
+        selected := model.key
+    
+    Label: high_lab:
+        text = 'High (V)'
+    QtLineCompleter: high_val:
+        text := model.value0
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("The voltage the high amplitude should be set to.")
+    Label: low_lab:
+        text = 'Low (V)'
+    QtLineCompleter: low_val:
+        text := model.value1
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = fill("The voltage the high amplitude should be set to.")
    
 enamldef AWGSetDCOffsetView(InstrView): view:
     """View for the AWGSetDCOffsetTask.
@@ -67,3 +100,14 @@ enamldef AWGSetVppView(InstrView): view:
         text := task.amplitude
         entries_updater << task.list_accessible_database_entries
         tool_tip = fill("The voltage the Vpp amplitude should be set to.")
+        
+enamldef AWGSetMarkerView(InstrView): view:
+    """View for the AWGSetVppTask.
+
+    """
+    constraints = [vbox(hbox(instr_label,instr_selection),ed)]
+
+    DictListEditor(Marker_Dict): ed:
+                ed.mapping := task.Marker_Dict
+                ed.operations = ('add', 'move', 'remove')
+                ed.attributes = {'task': task}

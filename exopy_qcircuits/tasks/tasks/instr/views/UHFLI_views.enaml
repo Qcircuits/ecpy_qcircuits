@@ -29,10 +29,6 @@ from exopy.utils.widgets.dict_editor import DictEditor
 from exopy.utils.widgets.dict_list_editor import DictListEditor
 from exopy_qcircuits.utils.widgets.dict_list_editor import DictListEditor4
 
-#from atom.api import Enum
-
-
-
 
 enamldef Signal_path(Container):
     
@@ -45,7 +41,7 @@ enamldef Signal_path(Container):
     
     ObjectCombo: v0:
         items <<  ['Demodulator 1', 'Demodulator 2', 'Demodulator 3','Demodulator 4',
-                   'Demodulator 5','Demodulator 6','Demodulator 7','Demodulator 8',]
+                   'Demodulator 5','Demodulator 6','Demodulator 7','Demodulator 8']
         tool_tip = ('Demodulator from which the data will be take')
         selected := model.value0
                 
@@ -53,14 +49,13 @@ enamldef Signal_path(Container):
         items <<  ['r', 'x', 'y','theta','frequency',]
         tool_tip = ('data to record')
         selected := model.value1
-#    QtLineCompleter: v:
-#        text := model.value
+
 
 enamldef modified_values(Container):
     """View to edit a key/value pair.
 
     """
-    #: Reference to the key/value pair being edited       
+    #: Reference to the key/value/unit list being edited       
     attr model
     constraints = [hbox(k, v0, v1), 2*k.width <= v0.width, k.width == v1.width]
     padding = 1
@@ -76,7 +71,7 @@ enamldef modified_values(Container):
         tool_tip = ('Value to insert instead of the label')
         
     ObjectCombo: v1:
-        items <<  ['none', 'ns','MHz','V','kHz','ns_to_clck','clock_samples','s', 'µs','mV','GHz']
+        items <<  ['none','ns','µs','s','kHz','MHz','GHz','mV','V','ns_to_clck','clock_samples']
         tool_tip = ('Unit of the item')
         selected := model.value1
         
@@ -114,7 +109,7 @@ enamldef parameter_to_set(Container):
     """View to edit aparameter/index/value list.
 
     """
-    #: Reference to the parameter/index/value list being edited
+    #: Reference to the parameter/index/value/unit list being edited
     attr model
 
     constraints = [hbox(k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3),
@@ -124,8 +119,7 @@ enamldef parameter_to_set(Container):
                    k.width == v3txt.width,
                    k.width*2 == v0.width,
                    k.width*2 == v2.width,
-                   k.width == v1.width,
-                   
+                   k.width == v1.width,            
                    k.width == v3.width, 
                    align('v_center',k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3)
                    ]
@@ -152,21 +146,18 @@ enamldef parameter_to_set(Container):
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8']
                 selected := model.value1
-                #selected << model.key[-1]
                 tool_tip =('Index of demodulator. Ex 4 for demodulator 4')
         Conditional:
             condition << (v0.selected == 'Oscillator')
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8']
                 selected := model.value1
-                #selected << model.key[-1]
                 tool_tip =('Index of oscllator. Ex 4 for oscillator 4')
         Conditional:
             condition << (v0.selected ==  'AWG Amplitude' )
             ObjectCombo:
                 items <<  ['1','2']
                 selected := model.value1
-                #selected << model.key[-1]
                 tool_tip =('Index of AWG. Ex 1 for AWG output 1')
         Conditional:
             condition << (v0.selected == 'User Register' )
@@ -211,7 +202,7 @@ enamldef parameter_to_set(Container):
     Label: v3txt:
         text = 'Unit :'
     ObjectCombo: v3:
-        items <<  ['none', 'ns','MHz','V','kHz','ns_to_clck','clock_samples','s', 'µs','mV','GHz']
+        items <<  ['none','ns','µs','s','kHz','MHz','GHz','mV','V','ns_to_clck','clock_samples']
         tool_tip = ('Unit of the item')
         selected := model.value3
    
