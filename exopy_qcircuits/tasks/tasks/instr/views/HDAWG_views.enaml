@@ -1,0 +1,314 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2017-2018 by exopyQcircuits Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""View Alazar related tasks.
+
+"""
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+from inspect import cleandoc
+from textwrap import fill
+from collections import OrderedDict
+
+
+from enaml.core.api import Conditional, Include
+from enaml.widgets.api import (FileDialog, PushButton, GroupBox, Label, Field, ObjectCombo, CheckBox,
+                               Container)
+from enaml.layout.api import grid, vbox, hbox, factory, align
+
+from exopy.tasks.api import (EVALUATER_TOOLTIP,FORMATTER_TOOLTIP)
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from ...base_instr_view import InstrView
+from exopy.utils.widgets.dict_editor import DictEditor
+from exopy_qcircuits.utils.widgets.dict_list_editor import DictListEditor4
+
+#from atom.api import Enum
+
+enamldef modified_values(Container):
+    """View to edit a key/value pair.
+
+    """
+    #: Reference to the key/value pair being edited
+    attr model
+    constraints = [hbox(k, v0, v1), 2*k.width <= v0.width, k.width == v1.width]
+    padding = 1
+
+    QtLineCompleter: k:
+        text := model.key
+        entries_updater = model.task.list_accessible_database_entries
+        tool_tip = ('Labels to change in the AWG txt file')
+        
+    QtLineCompleter: v0:
+        text := model.value0
+        entries_updater = model.task.list_accessible_database_entries
+        tool_tip = ('Value to insert instead of the label')
+        
+    ObjectCombo: v1:
+        items <<  ['','none', 'ns', 'GHz' ,'clock_samples', 's', 'µs','ns_to_clck']
+        tool_tip = ('Unit of the item')
+        selected := model.value1
+        
+enamldef reference_values(Container):
+    """View to edit a key/value pair.
+
+    """
+    #: Reference to the key/value pair being edited
+    attr model
+    constraints = [hbox(k, v0), k.width == v0.width]
+    padding = 1
+    
+    Label: k:
+        text = model.key
+        tool_tip = ('Variable in sequence file')
+        
+    Label: v0:
+        text = 'User Register ' + model.value0
+        tool_tip = ('Corresponding user register')
+        
+def load_sequence(core, file, task):
+    
+    seqfile = None
+    try:
+        seqfile = open(file,"r")
+    except FileNotFoundError as er:
+         cmd = 'exopy.app.errors.signal'
+         msg = 'Failed to load sequence {}'.format(file)
+         core.invoke_command(cmd, dict(kind='error', message=msg))
+         return
+    if seqfile:      
+        #obtain file lines
+        lines = [line for line in seqfile.readlines()]
+        seqfile.close()
+        para = []
+        URs = {}
+        for line in lines:
+            splitundrscr = line.split('_')
+            if len(splitundrscr) > 2: #at least one _ per line, not fool proof
+                elements = splitundrscr[1:-1:2]
+                para.extend(['_{}_'.format(el) for el in elements])
+            if 'var' in line and 'getUserReg' in line:
+                varname = (line.split('var ')[1]).split(' =')[0]
+                URnum = int(((line.split('getUserReg(')[1]).split(')')[0]))
+                URs[varname] = URnum
+        
+        refvals = OrderedDict.fromkeys(URs.keys(),['','','',''])
+        for key in URs.keys():
+            refvals[key] = [str(URs[key]+1),'','','']
+        task.reference_values = refvals
+                
+        new = OrderedDict.fromkeys(para, ['','','',''])
+        for k in (e for e in task.modified_values if e in new):
+            new[k] = task.modified_values[k]
+        task.modified_values = new
+
+enamldef parameter_to_set(Container):
+    """View to edit aparameter/index/value list.
+
+    """
+    #: Reference to the parameter/index/value list being edited
+    attr model
+    constraints = [hbox(k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3),
+                   k.width == v0txt.width,
+                   k.width == v1txt.width,
+                   k.width == v2txt.width,
+                   k.width == v3txt.width,
+                   k.width*2 == v0.width,
+                   k.width*2 == v2.width,
+                   k.width == v1.width,
+                   
+                   k.width == v3.width, 
+                   align('v_center',k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3)
+                   ]
+    padding = 1
+    
+    Label: k:
+        text = model.key
+        
+    Label: v0txt:
+        text = 'Para :'
+    
+    ObjectCombo: v0:
+        #make sure the length of all the strings is 20
+        items <<  ['User Register',
+                   'Oscillator',
+                   'Waveform Amplitude',
+                   'Phase shift',
+                   'Amplitude Range',
+                   'Hold',
+                   'LowPass order',
+                   'LowPass TC',
+                   'Osc of Demod',
+                   'Trig of Demod',
+                   'Output1 Demod',
+                   'Output2 Demod']
+        selected := model.value0
+        
+        tool_tip = ('Name of parameter. Ex Oscillator for oscillator 4')
+        
+    Label: v1txt:
+        text = 'Index :'
+        
+    Container:v1:
+        Conditional:
+            condition << ('Phase shift' in v0.selected or 'Amplitude Range' in v0.selected or 'LowPass' in v0.selected or 'Demod' in v0.selected)
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8']
+                selected := model.value1
+                tool_tip =('Index of demodulator. Ex 4 for demodulator 4')
+        Conditional:
+            condition << (v0.selected == 'Oscillator')
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16']
+                selected := model.value1
+                tool_tip =('Index of oscllator. Ex 4 for oscillator 4')
+        Conditional:
+            condition << (v0.selected ==  'Waveform Amplitude' )
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8']
+                selected := model.value1
+                tool_tip =('Index of Waveform. Ex 1 for Waveform output 1')
+        Conditional:
+            condition << (v0.selected ==  'Hold' )
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8']
+                selected := model.value1
+                tool_tip =('Index of Waveform Generator to Hold. Ex 1 for Waveform Generator 1')
+        Conditional:
+            condition << (v0.selected == 'User Register')
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16']
+                selected := model.value1
+                tool_tip =('Index of register. Ex 4 for User Register 4')
+            
+    Label: v2txt:
+        text = 'Value :'
+
+    Container:v2:
+        Conditional:
+            condition << ( v0.selected == 'Amplitude Range') 
+            ObjectCombo:
+                items << ['0.2','0.4','0.6','0.8','1','2','3','4','5']
+                selected := model.value2
+                tool_tip = ('Amplitude Range (V)')
+        Conditional:
+            condition << ( v0.selected == 'LowPass order' ) 
+            ObjectCombo:
+                items << ['1','2','3','4','5','6','7','8']
+                selected := model.value2
+                tool_tip =('Order number')
+        Conditional:
+            condition << ( v0.selected == 'Osc of Demod' ) 
+            ObjectCombo:
+                items << ['1','2','3','4','5','6','7','8']
+                selected := model.value2
+                tool_tip =('Oscillator index')
+        Conditional:
+            condition << ( v0.selected == 'Hold' ) 
+            ObjectCombo:
+                items << ['On','Off']
+                selected := model.value2
+                tool_tip =('Hold mode on or off')
+        Conditional:
+            condition << ('Trig' in  v0.selected) 
+            ObjectCombo:
+                items << ['AWG Trigger 1 Rise','AWG Trigger 1 High','AWG Trigger 2 Rise','AWG Trigger 2 High',
+                          'AWG Trigger 3 Rise','AWG Trigger 3 High','AWG Trigger 4 Rise','AWG Trigger 4 High']
+                selected:= model.value2
+        Conditional:
+            condition<<(v0.selected != 'Amplitude Range' and v0.selected != 'Hold' and v0.selected != 'Osc of Demod' and  v0.selected !='LowPass order' and not 'Trig' in  v0.selected)
+            QtLineCompleter:
+                text := model.value2
+                entries_updater = model.task.list_accessible_database_entries
+                tool_tip =('''Value of parameter. Ex 30e3 for a frequency of 30 kHz.
+                           Oscillator's frequency musst be lower than 600 MHz.
+                           Warning : User Register's value will be rounded down to the last integer.
+                           AWH output take a number between 0 and 1 
+                           ( min and max of the signal output scale).
+                           Phase musst be in degree.
+                           Output are in Volts''')
+                
+    Label: v3txt:
+        text = 'Unit :'
+    ObjectCombo: v3:
+        items <<  ['none', 'ns', 'GHz' ,'clock_samples', 's', 'µs', 'ns_to_clck']
+        tool_tip = ('Unit of the item')
+        selected := model.value3
+            
+enamldef PulseTransferHDAWGView(InstrView): view:
+    
+    constraints = [vbox(hbox(instr_label,instr_selection),
+                        file_cont, ed, ed2)]
+    Container: file_cont:
+
+
+        GroupBox: folder:
+
+            title = 'Text File'
+            constraints = [hbox(file, explore,seq_re),
+                            align('v_center', file, explore,seq_re)]
+
+            QtLineCompleter: file:
+                text := task.PulseSeqFile
+                tool_tip = fill(cleandoc('''text file containing the awg pulse sequence'''))
+            PushButton: explore:
+                text = 'Select Sequence'
+                hug_width = 'strong'
+                clicked ::
+                    file = FileDialog(mode = 'open_file',
+                                    title = 'Select a txt file',
+                                    filters = ['*.txt']
+                                    ).exec_()
+                    if file:
+                        task.PulseSeqFile = file
+                        load_sequence(view.root.core,file, task)
+            PushButton: seq_re:
+                enabled << bool(task.PulseSeqFile)
+                text = 'Refresh'
+                clicked ::
+                    load_sequence(view.root.core,file.text, task)
+
+    DictListEditor4(modified_values): ed:
+        ed.mapping := task.modified_values
+        ed.operations = ('add', 'move', 'remove')
+        ed.attributes = {'task': task}
+        
+    DictListEditor4(reference_values): ed2:
+        ed2.mapping := task.reference_values
+        #ed2.operations = ('add', 'move', 'remove')
+        ed2.attributes = {'task': task}
+    
+enamldef  OutputOnOffHDAWGView(InstrView): view:
+    """View for the OutputOnOffHDAWGTask.
+
+    """
+    constraints = [hbox(instr_label,instr_selection, ch_lab, ch_val, onoff_lab, onoff_val)]
+
+    Label: ch_lab:
+        text = 'Channels'
+    Field: ch_val:
+        text := task.channellist
+        tool_tip = fill("List of channels of which you want to control the output."
+                        "Channel numbers separated by commas e.g. 1,5,3"
+                        "for channels 1, 3 and 5")
+
+    Label: onoff_lab:
+        text = 'On/Off'
+    Field: onoff_val:
+        text := task.onoff
+        tool_tip = fill("On/Off string (1,on,On,0,off,Off")
+    
+
+enamldef SetParametersHDAWGView(InstrView): view:
+    
+    constraints = [vbox(hbox(instr_label,instr_selection),ed)]
+
+    DictListEditor4(parameter_to_set): ed:
+        ed.mapping := task.parameterToSet
+        ed.operations = ('add', 'move', 'remove')
+        ed.attributes = {'task': task}

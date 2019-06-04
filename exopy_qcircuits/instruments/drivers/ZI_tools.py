@@ -21,7 +21,7 @@ from .driver_tools import BaseInstrument, InstrIOError
 
 
 class ZIInstrument(BaseInstrument):
-    """ A base class for all Zurick Instrument instrumensts.
+    """ A base class for all Zurich Instrument instrumensts.
 
     Attributes
     ----------
