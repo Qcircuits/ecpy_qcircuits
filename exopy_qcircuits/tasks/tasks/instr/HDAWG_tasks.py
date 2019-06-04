@@ -34,7 +34,12 @@ def eval_with_units(task,evaluee):
     unit = str(evaluee[1])
     unitlist = ['','none', 'ns', 'GHz' ,'clock_samples', 's', 'µs','ns_to_clck'] #from views
     multlist  = [1,1,1e-9,1e9,1,1,1e-6,1/3.33] #corresponding to above list
-    multiplier = multlist[np.argwhere(np.array(unitlist)==unit)[0,0]]
+    unitdict = dict(zip(unitlist,multlist))
+
+    clckrate_command = '/%s/system/clocks/sampleclock/freq' %task.driver.device
+    unitdict['ns_to_clck'] = float(task.driver.daq.get(clckrate_command, True, 0)[clckrate_command]['value'])*1e-9/8 # the HDAWG clockrate is 8 times slower than the sample rate
+    
+    multiplier = unitdict[unit]
     value = value * multiplier
     return value
         
@@ -101,19 +106,14 @@ class PulseTransferHDAWGTask(InstrumentTask):
         
         awg_program = textwrap.dedent(sequence)
         
-#        for l, v in self.modified_values.items():
-#            v=str(self.format_and_eval_string(v))
-#            awg_program = awg_program.replace(l, v)
         for l, v in self.modified_values.items():
-            value = str(eval_with_units(v))
+            value = str(eval_with_units(self,v))
             awg_program = awg_program.replace(l, value)        
         
-        self.driver.TransfertSequence(awg_program)
+        self.driver.TransferSequence(awg_program)
 
-        # Start the AWG in single-shot mode.
+        # Start the AWG in single-shot mode. CAREFUL this does not activate the outputs
         self.driver.daq.setInt('/%s/awgs/0/enable' %device, 1) # start/stop equiv
-        for channel in self.driver.channels:    
-            self.driver.daq.setInt('/{}/sigouts/{}/on'.format(device,channel), 1) # channel on
         self.driver.daq.sync()
         
 class SetParametersHDAWGTask(InstrumentTask):
@@ -177,8 +177,8 @@ class SetParametersHDAWGTask(InstrumentTask):
             if v[0] == 'Waveform Amplitude':
                 channel = self.format_and_eval_string(v[1])-1
                 value = eval_with_units(self,v[-2:])
-                awg = channel//ch_group
-                channel = channel%ch_group
+                awg = channel//2 #2 channels per AWG
+                channel = channel%2
                 exp_setting = exp_setting + [['/%s/awgs/%d/outputs/%d/amplitude' % (device,awg,channel), value]]
             elif v[0] == 'Oscillator':
                 channel = self.format_and_eval_string(v[1])-1
@@ -199,39 +199,40 @@ class SetParametersHDAWGTask(InstrumentTask):
             elif v[0] == 'Hold':
                 channel = self.format_and_eval_string(v[1])-1
                 value = int(bool(v[2]=='On'))
-                awg = channel//ch_group
+                awg = channel//2 #2 channels per AWG
+                channel = channel%2
                 exp_setting=exp_setting + [['/%s/awgs/%d/outputs/%d/hold' % (device,awg,channel), value]]
             else:
                 print('not an interfaced variable')
                                 
         self.driver.daq.set(exp_setting)
         self.driver.daq.sync()
-        
-class CloseAWGUHFLITask(InstrumentTask):
-    """ Close AWG module of UHFLI.
-        
-    """        
+
+class OutputOnOffHDAWGTask(InstrumentTask):
     
-    def check(self, *args, **kwargs):
-        """
-        """
-        test, traceback = super(CloseAWGUHFLITask, self).check(*args,
-                                                             **kwargs)
-        
-                        
-        return test, traceback
+    channellist = Unicode().tag(pref=True)
+    onoff = Unicode().tag(pref=True)
     
     def perform(self):
-        """
-        """
         if not self.driver.daq:
             self.start_driver()
         
-        if self.driver.awgModule:
-            if self.driver.daq:
-                self.driver.daq.setInt('/%s/awgs/0/enable' %self.driver.device, 0)
-            self.driver.awgModule.finish()
-            self.driver.awgModule.clear()
-            self.driver.daq.sync()
-            self.driver.awgModule = None   
+        if not self.driver.saveConfig:
+            path = self.format_string('{default_path}')
+            measId = self.format_string('LabOne_settings_{meas_id}.xml')
+            full_path = os.path.join(path,measId)
+            self.driver.saveConfiguration(full_path)
         
+        device = self.driver.device        
+        channels = list(map(lambda x: int(x)-1,self.channellist.split(',')))
+        setOn = 0
+        if self.onoff in ['On','on','1']:
+            setOn = 1
+        elif self.onoff in ['Off','off','0']:
+            setOn = 0
+        else:
+            print('Invalid on/off string')
+            raise ValueError
+    
+        for ch in channels: 
+            self.driver.daq.setInt('/{}/sigouts/{}/on'.format(device,ch), setOn)

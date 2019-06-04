@@ -1,0 +1,35 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2015-2018 by QCircuits Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Views for the pulse mode ON/OFF on RF sources
+
+"""
+from enaml.widgets.api import (Label, CheckBox)
+from enaml.layout.api import factory
+
+from textwrap import fill
+
+from exopy_hqc_legacy.utils.layouts import auto_grid_layout
+from ...base_instr_view import InstrView
+
+
+enamldef SetRFPulsedView(InstrView): view:
+    """View for the RFFrequencyTask.
+
+    """
+    #: Attribute set by the parent view if the task is embedded inside a
+    #: LoopTask
+    attr in_loop : bool = False
+
+    constraints << [factory(auto_grid_layout)]
+
+    Label: auto_lab:
+        text = 'Pulsed Mode ON/OFF'
+    CheckBox: auto_val:
+        checked := task.pulsed
+        tool_tip = fill("Tick if the source should be in pulsed mode.", 60)

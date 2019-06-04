@@ -128,6 +128,10 @@ enamldef QcircuitsManifest(PluginManifest):
                 path = 'instr'
                 group = 'instr'
                 Task:
+                    task = 'RFpulsed_task:SetRFPulsedTask'
+                    view = 'views.RFpulsed_views:SetRFPulsedView'
+                    instruments = ['exopy_hqc_legacy.Legacy.Anapico']
+                Task:
                     task = 'alazar_tasks:DemodAlazarTask'
                     view = 'views.alazar_views:DemodAlazarView'
                     instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
@@ -182,6 +186,10 @@ enamldef QcircuitsManifest(PluginManifest):
                 Task:
                     task = 'HDAWG_tasks:SetParametersHDAWGTask'
                     view = 'views.HDAWG_views:SetParametersHDAWGView'
+                    instruments = ['exopy_qcircuits.Qcircuits.HDAWG']
+                Task:
+                    task = 'HDAWG_tasks:OutputOnOffHDAWGTask'
+                    view = 'views.HDAWG_views:OutputOnOffHDAWGView'
                     instruments = ['exopy_qcircuits.Qcircuits.HDAWG']
                 Task:
                     task = 'AWG_tasks:AWGSetDCOffsetTask'
