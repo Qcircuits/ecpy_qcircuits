@@ -69,9 +69,13 @@ class DemodAlazarTask(InstrumentTask):
     triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
     
     demodFormFile = Unicode('[]').tag(pref=True)
+    
+    powerBoolA  =Bool(False).tag(pref=True) 
+
+    powerBoolB  =Bool(False).tag(pref=True) 
 
 
-    database_entries = set_default({'Demod': {}, 'Trace': {}})
+    database_entries = set_default({'Demod': {}, 'Trace': {}, 'Power': {}})
 
     def format_string(self, string, factor, n):
         s = self.format_and_eval_string(string)
@@ -228,15 +232,18 @@ class DemodAlazarTask(InstrumentTask):
         freqA = self.format_string(self.freq, 10**6, NdemodA)
         freqB = self.format_string(self.freqB, 10**6, NdemodB)
         freq = freqA + freqB
+        
+        power = [self.powerBoolA,self.powerBoolB] 
 
-        answerDemod, answerTrace = self.driver.get_demod(startaftertrig, duration,
+        answerDemod, answerTrace, answerPower = self.driver.get_demod(startaftertrig, duration,
                                        recordsPerCapture, recordsPerBuffer,
                                        timestep, freq, self.average,
                                        NdemodA, NdemodB, NtraceA, NtraceB, 
-                                       Npoints,demodFormFile,demodCosinus)
+                                       Npoints,demodFormFile,demodCosinus,power)
 
         self.write_in_database('Demod', answerDemod)
         self.write_in_database('Trace', answerTrace)
+        self.write_in_database('Power', answerPower)
 
 
 class VNAAlazarTask(InstrumentTask):
@@ -390,3 +397,133 @@ class VNAAlazarTask(InstrumentTask):
                                        demodFormFile,demodCosinus)
 
         self.write_in_database('VNADemod', answerDemod)
+        
+class FFTAlazarTask(InstrumentTask):
+    """ Get the raw or averaged quadratures of the signal.
+        Can also get raw or averaged traces of the signal.
+        Custom shape for demodulation can be used.
+    """
+
+    tracetimeaftertrig = Unicode('0').tag(pref=True, feval=VAL_REAL)
+
+    tracetimeaftertrigB = Unicode('0').tag(pref=True, feval=VAL_REAL)
+
+    traceduration = Unicode('0').tag(pref=True)
+
+    tracedurationB = Unicode('0').tag(pref=True)
+
+    tracesbuffer = Unicode('20').tag(pref=True, feval=VAL_INT)
+
+    tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
+
+    average = Bool(True).tag(pref=True)
+    
+    Npoints = Unicode('0').tag(pref=True,feval=VAL_INT)
+
+    trigrange = Enum('2.5V','5V').tag(pref=True)
+
+    triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
+    
+    powerPhaseA  =Bool(False).tag(pref=True)
+    
+    powerPhaseB = Bool(False).tag(pref=True)
+
+    database_entries = set_default({'FFT': {}, 'freq': {},'power': {},'phase': {}})
+
+    def format_string(self, string, factor, n):
+        s = self.format_and_eval_string(string)
+        if isinstance(s, list) or isinstance(s, tuple) or isinstance(s, np.ndarray):
+            return [elem*factor for elem in s]
+        else:
+            return [s*factor]*n   
+    
+    def check(self, *args, **kwargs):
+        """
+        """
+        test, traceback = super(FFTAlazarTask, self).check(*args,
+                                                             **kwargs)
+
+        if (self.format_and_eval_string(self.tracesnumber) %
+                self.format_and_eval_string(self.tracesbuffer) != 0 ):
+            test = False
+            traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
+                cleandoc('''The number of traces must be an integer multiple of the number of traces per buffer.''')
+
+        if not (self.format_and_eval_string(self.tracesnumber) >= 1000):
+            test = False
+            traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
+                cleandoc('''At least 1000 traces must be recorded. Please make real measurements and not noisy s***.''')
+
+        tracetime = self.format_string(self.tracetimeaftertrig, 10**-9, 1)
+        traceduration = self.format_string(self.traceduration, 10**-9, 1)
+        tracetimeB = self.format_string(self.tracetimeaftertrigB, 10**-9, 1)
+        tracedurationB = self.format_string(self.tracedurationB, 10**-9, 1)
+
+        for t, d in ((tracetime,traceduration), (tracetimeB,tracedurationB)):
+            if len(t) != len(d):
+                test = False
+                traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
+                    cleandoc('''An equal number of "Start time after trig" and "Duration" should be given.''')
+            else :
+                for tt, dd in zip(t, d):
+                    if not (tt >= 0 and dd >= 0) :
+                           test = False
+                           traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
+                               cleandoc('''Both "Start time after trig" and "Duration" must be >= 0.''')
+
+        if ((0 in traceduration) and (0 in tracedurationB)):
+            test = False
+            traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
+                           cleandoc('''All measurements are disabled.''')
+        
+        return test, traceback
+
+    def perform(self):
+        """
+        """
+        if not self.driver:
+            self.start_driver()
+
+        if self.trigrange == '5V':
+            trigrange = 5
+        else:
+            trigrange = 2.5
+
+        triglevel = self.format_and_eval_string(self.triglevel)
+
+        self.driver.configure_board(trigrange,triglevel)
+
+        recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
+        recordsPerBuffer = int(self.format_and_eval_string(self.tracesbuffer))
+		
+        Npoints = self.format_and_eval_string(self.Npoints)
+
+        tracetimeA = self.format_string(self.tracetimeaftertrig, 10**-9, 1)
+        tracedurationA = self.format_string(self.traceduration, 10**-9, 1)
+        tracetimeB = self.format_string(self.tracetimeaftertrigB, 10**-9, 1)
+        tracedurationB = self.format_string(self.tracedurationB, 10**-9, 1)        
+        
+        
+        NtraceA = len(tracedurationA)
+        if 0 in tracedurationA:
+            NtraceA = 0
+            tracetimeA = []
+            tracedurationA = []
+        NtraceB = len(tracedurationB)
+        if 0 in tracedurationB:
+            NtraceB = 0
+            tracetimeB = []
+            tracedurationB = []
+        
+        startaftertrig =tracetimeA + tracetimeB
+        duration = tracedurationA + tracedurationB
+        powerPhase = [self.powerPhaseA,self.powerPhaseB]
+        answerFFT, answerFreq, answerFFTpower, answerFFTphase= self.driver.get_FFT(startaftertrig, duration,
+                                                                                   recordsPerCapture, recordsPerBuffer,
+                                                                                   self.average,
+                                                                                   NtraceA, NtraceB,Npoints,powerPhase)
+        self.write_in_database('FFT', answerFFT)
+        self.write_in_database('freq', answerFreq)        
+        self.write_in_database('power', answerFFTpower)
+        self.write_in_database('phase', answerFFTphase)
+    

@@ -136,6 +136,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     view = 'views.alazar_views:DemodAlazarView'
                     instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
                 Task:
+                    task = 'alazar_tasks:FFTAlazarTask'
+                    view = 'views.alazar_views:FFTAlazarView'
+                    instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
+                Task:
                     task = 'alazar_tasks:VNAAlazarTask'
                     view = 'views.alazar_views:VNAAlazarView'
                     instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']                

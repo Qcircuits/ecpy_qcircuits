@@ -57,7 +57,7 @@ enamldef modified_values(Container):
     """
     #: Reference to the key/value/unit list being edited       
     attr model
-    constraints = [hbox(k, v0, v1), 2*k.width <= v0.width, k.width == v1.width]
+    constraints = [hbox(k, v0, v1), v0.width== 450, k.width == v1.width,k.width==150]
     padding = 1
 
     QtLineCompleter: k:
@@ -113,14 +113,15 @@ enamldef parameter_to_set(Container):
     attr model
 
     constraints = [hbox(k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3),
-                   k.width == v0txt.width,
-                   k.width == v1txt.width,
-                   k.width == v2txt.width,
-                   k.width == v3txt.width,
-                   k.width*2 == v0.width,
-                   k.width*2 == v2.width,
-                   k.width == v1.width,            
-                   k.width == v3.width, 
+                   k.width == 50,
+                   50 == v0txt.width,
+                   50 == v1txt.width,
+                   50 == v2txt.width,
+                   50 == v3txt.width,
+                   150 == v0.width,
+                   150 == v2.width,
+                   50 == v1.width,            
+                   75 == v3.width, 
                    align('v_center',k, v0txt, v0, v1txt, v1, v2txt, v2, v3txt, v3)
                    ]
     padding = 1
@@ -490,7 +491,8 @@ enamldef PulseTransferUHFLIView(InstrView): view:
 enamldef SetParametersUHFLIView(InstrView): view:
     
     
-    constraints = [vbox(hbox(instr_label,instr_selection),ed)]
+    constraints = [vbox(hbox(instr_label,instr_selection),ed)
+                  ]
 
 
     DictListEditor4(parameter_to_set): ed:

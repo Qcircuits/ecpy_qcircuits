@@ -373,8 +373,12 @@ enamldef TransferAWGFileView(InstrTaskView): view:
             sequence = change['value']
             sequence.observe('context', _check_context_driver_compatibility)
             if sequence.context:
+                ### modification Antoine ESSig 07/03/2019
                 validate_context_driver_pair(view.root.core,
-                                             task.sequence.context, task, view)
+                                             task.sequence.context, task, view.root.core)
+#                validate_context_driver_pair(view.root.core,
+#                                             task.sequence.context, task, view)
+                ### modification Antoine ESSig 07/03/2019
 
     func _check_context_driver_compatibility(change):
         """Check whether the selected driver can be used with the selected

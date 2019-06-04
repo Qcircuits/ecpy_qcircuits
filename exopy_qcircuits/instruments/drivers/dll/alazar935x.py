@@ -207,7 +207,7 @@ class Alazar935x(DllInstrument):
 
     def get_demod(self, startaftertrig, duration, recordsPerCapture,
                   recordsPerBuffer, timestep, freq, average, NdemodA, NdemodB,
-                  NtraceA, NtraceB, Npoints,demodFormFile,demodCosinus):
+                  NtraceA, NtraceB, Npoints,demodFormFile,demodCosinus,power):
 
         board = ats.Board()
 
@@ -386,6 +386,7 @@ class Alazar935x(DllInstrument):
 
         if (NdemodA or NdemodB):
             answerTypeDemod = []
+            answerTypePower = []
             Nstep = [int((samplesPerDemod[i]/int(samplesPerSec*timestep[i])) if timestep[i] else 1) for i in range(NdemodA+NdemodB)]
             for i in range(NdemodA+NdemodB):
                 if i<NdemodA:
@@ -404,8 +405,10 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerTypeDemod += [(chanLetter + 'I' + iindex, str(data[0].dtype)),
                                         (chanLetter + 'Q' + iindex, str(data[0].dtype))]
+                    answerTypePower += [(chanLetter + iindex, str(data[0].dtype))]
         else:
             answerTypeDemod = 'f'
+            answerTypePower = 'f'
 
         if (NtraceA or NtraceB):
             zerosTraceA = 1 + int(np.floor(np.log10(NtraceA))) if NtraceA else 0
@@ -417,25 +420,20 @@ class Alazar935x(DllInstrument):
             answerTypeTrace = 'f'
             biggerTrace = 0
 
-        if (average and Npoints == 0.0):
-            answerDemod = np.zeros(1, dtype=answerTypeDemod)
-        elif average:
-            answerDemod = np.zeros((1, Npoints), dtype=answerTypeDemod)
-        else:
-            answerDemod = np.zeros((recordsPerCapture, 1), dtype=answerTypeDemod)
-
-
         if average:
             if Npoints == 0.0:
                 answerDemod = np.zeros(1, dtype=answerTypeDemod)
                 answerTrace = np.zeros(biggerTrace, dtype=answerTypeTrace)
+                answerPower = np.zeros(1, dtype=answerTypePower)
 
             else:
                 answerDemod = np.zeros((1, Npoints), dtype=answerTypeDemod)
                 answerTrace = np.zeros((Npoints,biggerTrace), dtype=answerTypeTrace)
+                answerPower = np.zeros((1, Npoints), dtype=answerTypePower)
         else:
             answerDemod = np.zeros(recordsPerCapture, dtype=answerTypeDemod)
             answerTrace = np.zeros((recordsPerCapture, biggerTrace), dtype=answerTypeTrace)
+            answerPower = np.zeros(recordsPerCapture, dtype=answerTypePower)
 
         # Demodulate the data, average them if asked and return the result
 
@@ -444,19 +442,25 @@ class Alazar935x(DllInstrument):
                 chanLetter = 'A'
                 zerosDemod = 1 + int(np.floor(np.log10(NdemodA)))
                 index = str(i).zfill(zerosDemod)
+                powerbool = power[0]
             else:
                 chanLetter = 'B'
                 zerosDemod = 1 + int(np.floor(np.log10(NdemodB)))
                 index = str(i-NdemodA).zfill(zerosDemod)
+                powerbool = power[1]
             zerosStep = 1 + int(np.floor(np.log10(Nstep[i])))
             angle = 2 * np.pi * freq[i] * startSample[i] / samplesPerSec
             if (average and Npoints == 0.0):
+                if powerbool:
+                    ansP = 4 *np.mean(np.mean(((data[i]*coses[i])**2+(data[i]*sines[i])**2).reshape(recordsPerCapture,Nstep[i], -1), axis=0),axis=1)
                 data[i] = np.mean(data[i], axis=0)
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(Nstep[i], -1), axis=1)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(Nstep[i], -1), axis=1)
                 if not demodCosinus:
                     ansI = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansI
                     ansQ = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansQ
+                    if powerbool:
+                        ansP = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansP
                 for j in range(Nstep[i]):
                     if Nstep[i]>1:
                         iindex = index + '_' + str(j).zfill(zerosStep)
@@ -464,14 +468,20 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[j] * np.cos(angle) - ansQ[j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[j] * np.sin(angle) + ansQ[j] * np.cos(angle)
+                    answerPower[chanLetter + iindex] = ansP[j]
+
             elif average:
                 data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,samplesPerBlock[i])
+                if powerbool:
+                    ansP = 4 *np.mean(np.mean(((data[i]*coses[i])**2+(data[i]*sines[i])**2).reshape(int(recordsPerCapture/Npoints),Npoints,Nstep[i], -1), axis=0),axis=2)                
                 data[i] = np.mean(data[i], axis=0)
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(Npoints,Nstep[i],-1), axis=2)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(Npoints,Nstep[i],-1), axis=2)
                 if not demodCosinus:
                     ansI = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansI
                     ansQ = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansQ
+                    if powerbool:
+                        ansP = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansP
                 for j in range(Nstep[i]):
                     if Nstep[i]>1:
                         iindex = index + '_' + str(j).zfill(zerosStep)
@@ -479,13 +489,18 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[:,j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[:,j] * np.cos(angle)
-            
+                    answerPower[chanLetter + iindex] = ansP[:,j]
+
             else:
+                if powerbool:
+                    ansP = 4 * np.mean(((data[i]*coses[i])**2+(data[i]*sines[i])**2).reshape(recordsPerCapture,Nstep[i], -1),axis=2)
                 ansI = 2 * np.mean((data[i]*coses[i]).reshape(recordsPerCapture, Nstep[i], -1), axis=2)
                 ansQ = 2 * np.mean((data[i]*sines[i]).reshape(recordsPerCapture, Nstep[i], -1), axis=2)
                 if not demodCosinus:
                     ansI = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansI
                     ansQ = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansQ
+                    if powerbool:
+                            ansP = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansP
                 for j in range(Nstep[i]):
                     if Nstep[i]>1:
                         iindex = index + '_' + str(j).zfill(zerosStep)
@@ -493,8 +508,7 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[:,j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[:,j] * np.cos(angle)
-                
-
+                    answerPower[chanLetter + iindex] = ansP[:,j]
 
         for i in (np.arange(NtraceA+NtraceB) + NdemodB+NdemodA):
             if i<NdemodA+NdemodB+NtraceA:
@@ -506,11 +520,11 @@ class Alazar935x(DllInstrument):
                     answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
                 else:
                     data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,biggerTrace)
-                    answerTrace[Tracestring][:samplesPerDemod[i]] = np.mean(data[i], axis=0)
+                    answerTrace[Tracestring][:,:samplesPerDemod[i]] = np.mean(data[i], axis=0)
             else:
                 answerTrace[Tracestring][:,:samplesPerDemod[i]] = data[i]
 
-        return answerDemod, answerTrace
+        return answerDemod, answerTrace, answerPower
     
     
     
@@ -752,3 +766,188 @@ class Alazar935x(DllInstrument):
                 
 
         return answerDemod
+    
+    
+    def get_FFT(self, startaftertrig, duration, recordsPerCapture,
+                  recordsPerBuffer, average,
+                  NtraceA, NtraceB,Npoints,powerPhase):
+
+        board = ats.Board()
+
+        # Number of samples per record: must be divisible by 32
+        samplesPerSec = 500000000.0
+        samplesPerTrace = int(samplesPerSec * np.max(np.array(startaftertrig) + np.array(duration)))
+        if samplesPerTrace % 32 == 0:
+            samplesPerRecord = int(samplesPerTrace)
+        else:
+            samplesPerRecord = int((samplesPerTrace)/32 + 1)*32
+
+        # Compute the number of bytes per record and per buffer
+        channel_number = 2 if (NtraceA and NtraceB) else 1  # Acquisition on A and B
+        memorySize_samples, bitsPerSample = board.getChannelInfo()
+        bytesPerSample = (bitsPerSample.value + 7) // 8
+        bytesPerRecord = bytesPerSample * samplesPerRecord
+        bytesPerBuffer = int(bytesPerRecord * recordsPerBuffer*channel_number)
+
+        # For converting data into volts
+        channelRange = 0.4 # Volts
+        bitsPerSample = 12
+        bitShift = 4
+        code = (1 << (bitsPerSample - 1)) - 0.5
+
+        bufferCount = int(round(recordsPerCapture / recordsPerBuffer))
+        buffers = []
+        for i in range(bufferCount):
+            buffers.append(DMABuffer(bytesPerSample, bytesPerBuffer))
+
+        # Set the record size
+        board.setRecordSize(0, samplesPerRecord)
+
+        # Configure the number of records in the acquisition
+        acquisition_timeout_sec = 10
+        board.setRecordCount(int(recordsPerCapture))
+
+        # Calculate the number of buffers in the acquisition
+        buffersPerAcquisition = round(recordsPerCapture / recordsPerBuffer)
+
+        channelSelect = 1 if not NtraceB else (2 if not NtraceA else 3)
+        board.beforeAsyncRead(channelSelect,  # Channels A & B
+                                  0,
+                                  samplesPerRecord,
+                                  int(recordsPerBuffer),
+                                  int(recordsPerCapture),
+                                  ats.ADMA_EXTERNAL_STARTCAPTURE |
+                                  ats.ADMA_NPT)
+
+        # Post DMA buffers to board. ATTENTION it is very important not to do "for buffer in buffers"
+        for i in range(bufferCount):
+            buffer = buffers[i]
+            board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
+
+        start = time.clock()  # Keep track of when acquisition started
+        board.startCapture()  # Start the acquisition
+
+        if time.clock() - start > acquisition_timeout_sec:
+            board.abortCapture()
+            raise Exception("Error: Capture timeout. Verify trigger")
+            time.sleep(10e-3)
+
+        # Preparation of the tables for the demodulation
+
+        startSample = []
+        samplesPerDemod = []
+        data = []
+
+        for i in (np.arange(NtraceA + NtraceB)):
+            startSample.append(int(samplesPerSec * startaftertrig[i]) )
+            samplesPerDemod.append(int(samplesPerSec * duration[i]) )
+            data.append(np.empty((recordsPerCapture, samplesPerDemod[i])) )
+
+        start = time.clock()
+
+        buffersCompleted = 0
+        while buffersCompleted < buffersPerAcquisition:
+
+            # Wait for the buffer at the head of the list of available
+            # buffers to be filled by the board.
+            buffer = buffers[buffersCompleted % len(buffers)]
+            board.waitAsyncBufferComplete(buffer.addr, 10000)
+
+            # Process data
+
+            dataRaw = np.reshape(buffer.buffer, (recordsPerBuffer*channel_number, -1))
+            dataRaw = dataRaw >> bitShift
+
+            for i in (np.arange(NtraceA)):
+                data[i][buffersCompleted*recordsPerBuffer:(buffersCompleted+1)*recordsPerBuffer] = dataRaw[:recordsPerBuffer,startSample[i]:startSample[i]+samplesPerDemod[i]]
+
+            for i in (np.arange(NtraceB) + NtraceA):
+                data[i][buffersCompleted*recordsPerBuffer:(buffersCompleted+1)*recordsPerBuffer] = dataRaw[(channel_number-1)*recordsPerBuffer:channel_number*recordsPerBuffer,startSample[i]:startSample[i]+samplesPerDemod[i]]
+
+            buffersCompleted += 1
+
+            board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
+
+        board.abortAsyncRead()
+
+        for i in range(bufferCount):
+            buffer = buffers[i]
+            buffer.__exit__()
+
+        # Convert data into Volts
+        for i in (np.arange(NtraceA + NtraceB)):
+            data[i] = (data[i] / code - 1) * channelRange
+
+        # prepare the structure of the answered array
+        
+        if (NtraceA or NtraceB):
+            zerosTraceA = 1 + int(np.floor(np.log10(NtraceA))) if NtraceA else 0
+            zerosTraceB = 1 + int(np.floor(np.log10(NtraceB))) if NtraceB else 0
+            answerTypeTrace = ([('A' + str(i).zfill(zerosTraceA), str(data[0].dtype)) for i in range(NtraceA)]
+                              + [('B' + str(i).zfill(zerosTraceB), str(data[0].dtype)) for i in range(NtraceB)] )
+            answerTypeFFT = ([('AI' + str(i).zfill(zerosTraceA), str(data[0].dtype)) for i in range(NtraceA)]+
+                              [('AQ' + str(i).zfill(zerosTraceA), str(data[0].dtype)) for i in range(NtraceA)]
+                              + [('BI' + str(i).zfill(zerosTraceB), str(data[0].dtype))for i in range(NtraceB)]+
+                                 [('BQ' + str(i).zfill(zerosTraceB), str(data[0].dtype))for i in range(NtraceB)] )
+            biggerTrace = np.max(samplesPerDemod)
+            
+        if average:
+            if Npoints == 0.0:
+                answerFFT = np.zeros(biggerTrace//2+1, dtype=answerTypeFFT)
+                answerFFTpower = np.zeros(biggerTrace//2+1, dtype=answerTypeTrace)
+                answerFFTphase = np.zeros(biggerTrace//2+1, dtype=answerTypeTrace)
+
+            else:
+                answerFFT = np.zeros((Npoints,biggerTrace//2+1), dtype=answerTypeFFT)
+                answerFFTpower = np.zeros((Npoints,biggerTrace//2+1), dtype=answerTypeTrace)
+                answerFFTphase = np.zeros((Npoints,biggerTrace//2+1), dtype=answerTypeTrace)
+        else:
+            answerFFT = np.zeros((recordsPerCapture, biggerTrace//2+1), dtype=answerTypeFFT)
+            answerFFTpower = np.zeros((recordsPerCapture, biggerTrace//2+1), dtype=answerTypeTrace)
+            answerFFTphase = np.zeros((recordsPerCapture, biggerTrace//2+1), dtype=answerTypeTrace)
+        answerFreq = np.zeros(biggerTrace//2+1, dtype=answerTypeTrace)
+        # FFT of trace, average them if asked and return the result
+
+        for i in (np.arange(NtraceA+NtraceB)):
+            if i<NtraceA:
+                Tracestring = 'A' + str(i).zfill(zerosTraceA)
+                channel = 'A'
+                PP_bool = powerPhase[0]
+                index = str(i).zfill(zerosTraceA)
+            else:
+                Tracestring = 'B' + str(i-NtraceA).zfill(zerosTraceB)
+                PP_bool = powerPhase[1]
+                channel = 'B'
+                index = str(i-NtraceA).zfill(zerosTraceB)
+            if average:
+                if Npoints==0:
+                    spectrum =np.fft.rfft(np.mean(data[i], axis=0))
+                    answerFFT[channel+'I' + index][:samplesPerDemod[i]//2+1] = np.real(spectrum)
+                    answerFFT[channel+'Q' + index][:samplesPerDemod[i]//2+1] = np.imag(spectrum)
+                    answerFreq[Tracestring][:samplesPerDemod[i]//2+1] =np.fft.rfftfreq(samplesPerDemod[i],2)
+                    if PP_bool:
+                        spectrum = np.fft.rfft(data[i])
+                        answerFFTpower[Tracestring][:samplesPerDemod[i]//2+1] = np.mean(np.abs(spectrum),axis=0)
+                        answerFFTphase[Tracestring][:samplesPerDemod[i]//2+1] = np.mean(np.angle(spectrum),axis=0)
+                        
+                else:
+                    data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,biggerTrace//2+1)
+                    spectrum = np.fft.rfft(np.mean(data[i], axis=0))
+                    answerFFT[channel+'I' + index][:,:samplesPerDemod[i]//2+1] =np.real(spectrum,axes=-1)
+                    answerFFT[channel+'Q' + index][:,:samplesPerDemod[i]//2+1] =np.imag(spectrum)
+                    answerFreq[Tracestring][:samplesPerDemod[i]//2+1] =np.fft.rfftfreq(samplesPerDemod[i],2)
+                    if PP_bool:
+                        spectrum = np.fft.rfft(data[i])
+                        answerFFTpower[Tracestring][:,:samplesPerDemod[i]//2+1] = np.mean(np.abs(spectrum),axis=0)
+                        answerFFTphase[Tracestring][:,:samplesPerDemod[i]//2+1] = np.mean(np.angle(spectrum),axis=0)
+                     
+            else:
+                spectrum =np.fft.rfft(data[i])
+                answerFFT[channel+'I' + index][:,:samplesPerDemod[i]//2+1] =np.real(spectrum)
+                answerFFT[channel+'Q' + index][:,:samplesPerDemod[i]//2+1] =np.imag(spectrum)
+                answerFreq[Tracestring][:samplesPerDemod[i]//2+1] =np.fft.rfftfreq(samplesPerDemod[i],2)
+                if PP_bool:
+                        answerFFTpower[Tracestring][:,samplesPerDemod[i]//2+1] = np.abs(spectrum)
+                        answerFFTphase[Tracestring][:,:samplesPerDemod[i]//2+1] = np.angle(spectrum)
+                     
+        return answerFFT,answerFreq,answerFFTpower,answerFFTphase

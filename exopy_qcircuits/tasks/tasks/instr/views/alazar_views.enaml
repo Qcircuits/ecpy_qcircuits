@@ -76,10 +76,11 @@ enamldef DemodAlazarView(InstrView): view:
 
     GroupBox: demodA:
         title = 'Channel A demodulation settings'
-        constraints = [grid([after, duration, dfreq, samplingtime],
-                            [after_val, duration_val, dfreq_val, samplingtime_val]),
+        constraints = [grid([after, duration, dfreq, samplingtime,powerA],
+                            [after_val, duration_val, dfreq_val, samplingtime_val,powerA_val]),
                        dfreq_val.width == after_val.width,
-                       after_val.width == duration_val.width]
+                       after_val.width == duration_val.width,
+                       powerA_val.width == dfreq_val.width/2]
         Label: dfreq:
             text = 'Demodulation frequency (MHz)'
         Field: dfreq_val:
@@ -116,12 +117,18 @@ enamldef DemodAlazarView(InstrView): view:
                             Separate the time steps with commas or enter a Python formula.
                             --- You can specify a unique time step if it's the same for every demodulation.
                             --- 0 corresponds to one IQ per trace.'''))
+        Label: powerA:
+            text = 'Power'
+        CheckBox: powerA_val:
+            checked := task.powerBoolA
+            
     GroupBox: demodB:
         title = 'Channel B demodulation settings'
-        constraints = [grid([afterB, durationB, dfreqB, samplingtimeB],
-                            [afterB_val, durationB_val, dfreqB_val, samplingtimeB_val]),
+        constraints = [grid([afterB, durationB, dfreqB, samplingtimeB,powerB],
+                            [afterB_val, durationB_val, dfreqB_val, samplingtimeB_val,powerB_val]),
                        dfreqB_val.width == afterB_val.width,
-                       afterB_val.width == durationB_val.width]
+                       afterB_val.width == durationB_val.width,
+                       powerB_val.width == dfreq_val.width/2]
         Label: dfreqB:
             text = 'Demodulation frequency (MHz)'
         Field: dfreqB_val:
@@ -158,6 +165,10 @@ enamldef DemodAlazarView(InstrView): view:
                             Separate the time steps with commas or enter a Python formula.
                             --- You can specify a unique time step if it's the same for every demodulation.
                             --- 0 corresponds to one IQ per trace.'''))
+        Label: powerB:
+            text = 'Power'
+        CheckBox: powerB_val:
+            checked := task.powerBoolB
 
     GroupBox: traceA:
         title = 'Channel A raw trace record settings'
@@ -341,3 +352,114 @@ enamldef VNAAlazarView(InstrView): view:
                                      file by twins'''))
             
             
+enamldef FFTAlazarView(InstrView): view:
+
+    constraints = [vbox(
+                    grid([instr_label, traces, buffer, average, averaging,
+                          trigRange, trigLevel],
+                         [instr_selection, traces_val, buffer_val,
+                          average_val, averaging, trigRange_val, trigLevel_val]),
+                    hbox(traceA,traceB)),
+                    traces_val.width == buffer_val.width,
+                    averaging.width == traces_val.width,
+                    traceA.width == traceB.width]
+
+    Label: traces:
+        text = 'Number of traces'
+    Field: traces_val:
+        text := task.tracesnumber
+
+    Label: buffer:
+        text = 'Traces per Buffer'
+    Field: buffer_val:
+        text := task.tracesbuffer
+
+    Label: average:
+        text = 'Average'
+    CheckBox: average_val:
+        checked := task.average
+
+    Container: averaging:     
+        Conditional:
+            condition << average_val.checked
+            Label:
+                text = 'Number of points'
+            Field:
+                text := task.Npoints
+
+    Label: trigRange:
+        text = 'Trigger range (V)'
+    ObjectCombo: trigRange_val:
+        items << list(task.get_member('trigrange').items)
+        selected := task.trigrange
+
+    Label: trigLevel:
+        text = 'Trigger level (V)'
+    Field: trigLevel_val:
+        text := task.triglevel
+
+
+    GroupBox: traceA:
+        title = 'Channel A raw trace record settings'
+        constraints = [grid([traceafter, traceduration,PowerPhase],
+                            [traceafter_val, traceduration_val,PowerPhase_val]),
+                       traceafter_val.width == traceduration_val.width,
+                       traceafter_val.width == PowerPhase_val.width]
+
+        Label: traceafter:
+            text = 'Start time after trigger (ns)'
+        Field: traceafter_val:
+            text := task.tracetimeaftertrig
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example : 0,500,1500 or np.linspace(0,1500,3)'''))
+
+        Label: traceduration:
+            text = 'Duration (ns)'
+        Field: traceduration_val:
+            text := task.traceduration
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Trace record
+                            on channel A will be disabled if one of the
+                            durations is set to zero.
+                            ---- Note that data acquisition by channel A will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel B speed.'''))
+        Label : PowerPhase:
+            text='Abs/Phase before average'
+        CheckBox: PowerPhase_val:
+            checked := task.powerPhaseA
+            tool_tip = fill(cleandoc(
+                            '''Compute the absolute value and the phase of the fft before averaging'''))
+        
+    GroupBox: traceB:
+        title = 'Channel B raw trace record settings'
+        constraints = [grid([traceafterB, tracedurationB,PowerPhaseB],
+                            [traceafterB_val, tracedurationB_val,PowerPhaseB_val]),
+                       traceafterB_val.width == tracedurationB_val.width,
+                       traceafterB_val.width == PowerPhaseB_val.width]
+
+        Label: traceafterB:
+            text = 'Start time after trigger (ns)'
+        Field: traceafterB_val:
+            text := task.tracetimeaftertrigB
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example : 0,500,1500 or np.linspace(0,1500,3)'''))
+
+        Label: tracedurationB:
+            text = 'Duration (ns)'
+        Field: tracedurationB_val:
+            text := task.tracedurationB
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Trace record
+                            on channel B will be disabled if one of the
+                            durations is set to zero.
+                            ---- Note that data acquisition by channel B will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel A speed.'''))
+        Label : PowerPhaseB:
+            text='Abs/Phase before average'
+        CheckBox: PowerPhaseB_val:
+            checked := task.powerPhaseB
+            tool_tip = fill(cleandoc(
+                            '''Compute the absolute value and the phase of the fft before averaging'''))
+        
