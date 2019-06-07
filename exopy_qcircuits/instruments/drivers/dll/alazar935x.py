@@ -468,7 +468,8 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[j] * np.cos(angle) - ansQ[j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[j] * np.sin(angle) + ansQ[j] * np.cos(angle)
-                    answerPower[chanLetter + iindex] = ansP[j]
+                    if powerbool:
+                        answerPower[chanLetter + iindex] = ansP[j]
 
             elif average:
                 data[i] = data[i].reshape(int(recordsPerCapture/Npoints),Npoints,samplesPerBlock[i])
@@ -489,7 +490,8 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[:,j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[:,j] * np.cos(angle)
-                    answerPower[chanLetter + iindex] = ansP[:,j]
+                    if powerbool:
+                        answerPower[chanLetter + iindex] = ansP[:,j]
 
             else:
                 if powerbool:
@@ -508,7 +510,8 @@ class Alazar935x(DllInstrument):
                         iindex = index
                     answerDemod[chanLetter + 'I' + iindex] = ansI[:,j] * np.cos(angle) - ansQ[:,j] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + iindex] = ansI[:,j] * np.sin(angle) + ansQ[:,j] * np.cos(angle)
-                    answerPower[chanLetter + iindex] = ansP[:,j]
+                    if powerbool:
+                        answerPower[chanLetter + iindex] = ansP[:,j]
 
         for i in (np.arange(NtraceA+NtraceB) + NdemodB+NdemodA):
             if i<NdemodA+NdemodB+NtraceA:
