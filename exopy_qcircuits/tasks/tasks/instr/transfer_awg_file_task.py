@@ -393,8 +393,9 @@ class TransferAWGFileTask(InstrumentTask):
         for i in infos:
             yield i
 
-        for item in self.sequence.traverse():
-            yield item
+        if self.sequence:
+            for item in self.sequence.traverse():
+                yield item
 
     @classmethod
     def build_from_config(cls, config, dependencies):
