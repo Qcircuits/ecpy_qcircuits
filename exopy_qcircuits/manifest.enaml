@@ -225,13 +225,21 @@ enamldef QcircuitsManifest(PluginManifest):
                     # Way to declare instrument dependencies without specifying
                     # any instrument.
                     instruments = [None]
-                    
                 Task:
                     task = 'get_awg_config_task:GetAWGConfigTask'
                     view = ('views.get_awg_config_task_view:'
                             'GetAWGConfigView')
                     instruments = ['exopy_hqc_legacy.Legacy.AWG']
-
+                Task:
+                    task = 'rf_ENA_tasks:SetRFPowerTask'
+                    view = 'views.rf_ENA_views:RFPowerView'
+                    Interface:
+                        interface = 'ena_tasks:PNASetRFPowerInterface'
+                        views = ['views.ena_views:IPNAChannelLabel',
+                                 'views.ena_views:IPNAChannelValue',
+                                 'views.ena_views:IPNAPortLabel',
+                                 'views.ena_views:IPNAPortValue']
+                        instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
     Extension:
         id = 'contexts'
         point = 'exopy.pulses.contexts'
