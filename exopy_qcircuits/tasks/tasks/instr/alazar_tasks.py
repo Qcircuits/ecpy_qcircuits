@@ -42,9 +42,9 @@ class DemodAlazarTask(InstrumentTask):
 
     timestepB = Unicode('0').tag(pref=True)
 
-    tracetimeaftertrig = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    tracetimeaftertrig = Unicode('0').tag(pref=True)
 
-    tracetimeaftertrigB = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    tracetimeaftertrigB = Unicode('0').tag(pref=True)
 
     duration = Unicode('1000').tag(pref=True)
 
@@ -59,7 +59,7 @@ class DemodAlazarTask(InstrumentTask):
     tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
-    
+
     Npoints = Unicode('0').tag(pref=True,feval=VAL_INT)
 
     IQtracemode = Bool(False).tag(pref=True)
@@ -67,12 +67,14 @@ class DemodAlazarTask(InstrumentTask):
     trigrange = Enum('2.5V','5V').tag(pref=True)
 
     triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
-    
+
     demodFormFile = Unicode('[]').tag(pref=True)
     
     powerBoolA  =Bool(False).tag(pref=True) 
 
     powerBoolB  =Bool(False).tag(pref=True) 
+
+    aux_trig = Bool(False).tag(pref=True)
 
 
     database_entries = set_default({'Demod': {}, 'Trace': {}, 'Power': {}})
@@ -82,8 +84,8 @@ class DemodAlazarTask(InstrumentTask):
         if isinstance(s, list) or isinstance(s, tuple) or isinstance(s, np.ndarray):
             return [elem*factor for elem in s]
         else:
-            return [s*factor]*n   
-    
+            return [s*factor]*n
+
     def check(self, *args, **kwargs):
         """
         """
@@ -153,9 +155,9 @@ class DemodAlazarTask(InstrumentTask):
                 test = False
                 traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                    cleandoc('''The "IQ time step" does not cover an integer number of demodulation periods.''')
-                 
+
         demodFormFile = self.format_and_eval_string(self.demodFormFile)
-        
+
         if demodFormFile != []:
             duration=duration+durationB
             for d in duration:
@@ -163,7 +165,7 @@ class DemodAlazarTask(InstrumentTask):
                     test = False
                     traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                        cleandoc('''Acquisition's duration must be larger than demodulation fonction's duration''')
-        
+
         return test, traceback
 
     def perform(self):
@@ -183,7 +185,7 @@ class DemodAlazarTask(InstrumentTask):
 
         recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         recordsPerBuffer = int(self.format_and_eval_string(self.tracesbuffer))
-		
+
         Npoints = self.format_and_eval_string(self.Npoints)
 
         timeA = self.format_string(self.timeaftertrig, 10**-9, 1)
@@ -195,8 +197,8 @@ class DemodAlazarTask(InstrumentTask):
         tracetimeB = self.format_string(self.tracetimeaftertrigB, 10**-9, 1)
         tracedurationB = self.format_string(self.tracedurationB, 10**-9, 1)
         demodFormFile = self.format_and_eval_string(self.demodFormFile)
-        
-        
+
+
         NdemodA = len(durationA)
         if 0 in durationA:
             NdemodA = 0
@@ -221,7 +223,7 @@ class DemodAlazarTask(InstrumentTask):
             demodCosinus = 1;
         else:
             demodCosinus = 0;
-        
+
 
         startaftertrig = timeA + timeB + tracetimeA + tracetimeB
         duration = durationA + durationB + tracedurationA + tracedurationB
@@ -238,8 +240,9 @@ class DemodAlazarTask(InstrumentTask):
         answerDemod, answerTrace, answerPower = self.driver.get_demod(startaftertrig, duration,
                                        recordsPerCapture, recordsPerBuffer,
                                        timestep, freq, self.average,
-                                       NdemodA, NdemodB, NtraceA, NtraceB, 
-                                       Npoints,demodFormFile,demodCosinus,power)
+                                       NdemodA, NdemodB, NtraceA, NtraceB,
+                                       Npoints,demodFormFile,demodCosinus,
+                                       self.aux_trig, power)
 
         self.write_in_database('Demod', answerDemod)
         self.write_in_database('Trace', answerTrace)
@@ -270,9 +273,10 @@ class VNAAlazarTask(InstrumentTask):
     trigrange = Enum('2.5V','5V').tag(pref=True)
 
     triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
-    
+
     demodFormFile = Unicode('[]').tag(pref=True)
 
+    aux_trig = Bool(False).tag(pref=True)
 
     database_entries = set_default({'VNADemod': {}})
 
@@ -281,8 +285,8 @@ class VNAAlazarTask(InstrumentTask):
         if isinstance(s, list) or isinstance(s, tuple) or isinstance(s, np.ndarray):
             return [elem*factor for elem in s]
         else:
-            return [s*factor]*n   
-    
+            return [s*factor]*n
+
     def check(self, *args, **kwargs):
         """
         """
@@ -321,7 +325,7 @@ class VNAAlazarTask(InstrumentTask):
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                            cleandoc('''All measurements are disabled.''')
-                           
+
         demodFormFile = self.format_and_eval_string(self.demodFormFile)
         samplesPerSec = 500000000.0
 
@@ -359,8 +363,8 @@ class VNAAlazarTask(InstrumentTask):
         durationB = self.format_string(self.durationB, 10**-9, 1)
 
         demodFormFile = self.format_and_eval_string(self.demodFormFile)
-        
-        
+
+
         NdemodA = len(durationA)
         if 0 in durationA:
             NdemodA = 0
@@ -376,7 +380,7 @@ class VNAAlazarTask(InstrumentTask):
             demodCosinus = 1;
         else:
             demodCosinus = 0;
-        
+
 
         startaftertrig = timeA + timeB
         duration = durationA + durationB
@@ -392,9 +396,10 @@ class VNAAlazarTask(InstrumentTask):
 
         answerDemod = self.driver.get_VNAdemod(startaftertrig, duration,
                                        recordsPerCapture, recordsPerBuffer,
-                                        freq, self.average, Nfreq,
-                                       NdemodA, NdemodB, 
-                                       demodFormFile,demodCosinus)
+                                       freq, self.average, Nfreq,
+                                       NdemodA, NdemodB,
+                                       demodFormFile,demodCosinus,
+                                       self.aux_trig)
 
         self.write_in_database('VNADemod', answerDemod)
         

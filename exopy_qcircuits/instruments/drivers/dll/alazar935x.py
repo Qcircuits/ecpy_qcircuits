@@ -101,11 +101,11 @@ class Alazar935x(DllInstrument):
 
         super(Alazar935x, self).__init__(connection_infos, caching_allowed,
                                          caching_permissions, auto_open)
-        
+
         ### JEREMY
         self.clock_set = False
-        ### 
-        
+        ###
+
         if auto_open:
             self.open_connection()
 
@@ -131,7 +131,7 @@ class Alazar935x(DllInstrument):
         # TODO: Select clock parameters as required to generate this
         # sample rate
         samplesPerSec = 500000000.0
-        
+
         ## JEREMY
         if not self.clock_set:
 #            board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
@@ -139,29 +139,29 @@ class Alazar935x(DllInstrument):
  #                                 ats.CLOCK_EDGE_RISING,
 #                                  0)
             self.clock_set = True
-            
+
             #board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
             #                          500000000,
             #                          ats.CLOCK_EDGE_RISING,
             #                          0)
             ###
-        
+
             # TODO: Select channel A input parameters as required.
             board.inputControl(ats.CHANNEL_A,
                                    ats.DC_COUPLING,
                                    ats.INPUT_RANGE_PM_400_MV,
                                    ats.IMPEDANCE_50_OHM)
-    
+
             # TODO: Select channel A bandwidth limit as required.
             board.setBWLimit(ats.CHANNEL_A, 0)
-    
-    
+
+
             # TODO: Select channel B input parameters as required.
             board.inputControl(ats.CHANNEL_B,
                                    ats.DC_COUPLING,
                                    ats.INPUT_RANGE_PM_400_MV,
                                    ats.IMPEDANCE_50_OHM)
-    
+
             # TODO: Select channel B bandwidth limit as required.
             board.setBWLimit(ats.CHANNEL_B, 0)
             # TODO: Select trigger inputs and levels as required.
@@ -175,7 +175,7 @@ class Alazar935x(DllInstrument):
                                           ats.TRIG_DISABLE,
                                           ats.TRIGGER_SLOPE_POSITIVE,
                                           128)
-    
+
             # TODO: Select external trigger parameters as required.
             if trigRange == 5:
                 board.setExternalTrigger(ats.DC_COUPLING,
@@ -183,12 +183,12 @@ class Alazar935x(DllInstrument):
             else:
                 board.setExternalTrigger(ats.DC_COUPLING,
                                          ats.ETR_2V5)
-    
+
             # TODO: Set trigger delay as required.
             triggerDelay_sec = 0.
             triggerDelay_samples = int(triggerDelay_sec * samplesPerSec + 0.5)
             board.setTriggerDelay(triggerDelay_samples)
-    
+
             # TODO: Set trigger timeout as required.
             #
             # NOTE: The board will wait for a for this amount of time for a
@@ -207,8 +207,8 @@ class Alazar935x(DllInstrument):
 
     def get_demod(self, startaftertrig, duration, recordsPerCapture,
                   recordsPerBuffer, timestep, freq, average, NdemodA, NdemodB,
-                  NtraceA, NtraceB, Npoints,demodFormFile,demodCosinus,power):
-
+                  NtraceA, NtraceB, Npoints, demodFormFile, demodCosinus, aux_trig,
+				  powerbool):
         board = ats.Board()
 
         # Number of samples per record: must be divisible by 32
@@ -264,6 +264,12 @@ class Alazar935x(DllInstrument):
         start = time.clock()  # Keep track of when acquisition started
         board.startCapture()  # Start the acquisition
 
+        if aux_trig:
+            time.sleep(1)
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
+            time.sleep(0.1)
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
+
         if time.clock() - start > acquisition_timeout_sec:
             board.abortCapture()
             raise Exception("Error: Capture timeout. Verify trigger")
@@ -285,10 +291,10 @@ class Alazar935x(DllInstrument):
 
             if timestep[i]:
                 samplesPerBlock.append(samplesPerDemod[i] )
-                
+
             elif not demodCosinus:
                 samplesPerBlock.append(samplesPerDemod[i] )
-                
+
             else:
                 # Check wheter it is possible to cut each record in blocks of size equal
                 # to an integer number of periods
@@ -348,6 +354,12 @@ class Alazar935x(DllInstrument):
 
         board.abortAsyncRead()
 
+        if aux_trig:
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
+            time.sleep(0.1)
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
+
+
         for i in range(bufferCount):
             buffer = buffers[i]
             buffer.__exit__()
@@ -374,13 +386,15 @@ class Alazar935x(DllInstrument):
             else:
                 coses.append(demodFormFile[0])
                 sines.append(demodFormFile[1])
-            
+                LengthCosine.append(len(coses[i]))
+
                 if len(coses[i]) < samplesPerBlock[i]:
                     numberZeroAdd.append(samplesPerBlock[i]-len(coses[i]))
-                    LengthCosine.append(len(coses[i]))
                     coses[i] = np.concatenate((coses[i],0*np.arange(numberZeroAdd[i])))
                     sines[i] = np.concatenate((sines[i],0*np.arange(numberZeroAdd[i])))
-            
+                else:
+                    numberZeroAdd.append(0)
+
 
         # prepare the structure of the answered array
 
@@ -449,7 +463,7 @@ class Alazar935x(DllInstrument):
                 index = str(i-NdemodA).zfill(zerosDemod)
                 powerbool = power[1]
             zerosStep = 1 + int(np.floor(np.log10(Nstep[i])))
-            angle = 2 * np.pi * freq[i] * startSample[i] / samplesPerSec
+            angle = -2 * np.pi * freq[i] * startSample[i] / samplesPerSec
             if (average and Npoints == 0.0):
                 if powerbool:
                     ansP = 4 *np.mean(np.mean(((data[i]*coses[i])**2+(data[i]*sines[i])**2).reshape(recordsPerCapture,Nstep[i], -1), axis=0),axis=1)
@@ -513,6 +527,7 @@ class Alazar935x(DllInstrument):
                     if powerbool:
                         answerPower[chanLetter + iindex] = ansP[:,j]
 
+
         for i in (np.arange(NtraceA+NtraceB) + NdemodB+NdemodA):
             if i<NdemodA+NdemodB+NtraceA:
                 Tracestring = 'A' + str(i-NdemodA-NdemodB).zfill(zerosTraceA)
@@ -528,20 +543,11 @@ class Alazar935x(DllInstrument):
                 answerTrace[Tracestring][:,:samplesPerDemod[i]] = data[i]
 
         return answerDemod, answerTrace, answerPower
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
     def get_VNAdemod(self, startaftertrig, duration, recordsPerCapture,
                   recordsPerBuffer, freq, average, Nfreq, NdemodA, NdemodB,
-                  demodFormFile,demodCosinus):
+                  demodFormFile,demodCosinus, aux_trig):
 
         board = ats.Board()
 
@@ -598,6 +604,12 @@ class Alazar935x(DllInstrument):
         start = time.clock()  # Keep track of when acquisition started
         board.startCapture()  # Start the acquisition
 
+        if aux_trig:
+            time.sleep(0.5)
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
+            time.sleep(0.1)
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
+
         if time.clock() - start > acquisition_timeout_sec:
             board.abortCapture()
             raise Exception("Error: Capture timeout. Verify trigger")
@@ -616,10 +628,10 @@ class Alazar935x(DllInstrument):
         for i in range(NdemodA*Nfreq+NdemodB*Nfreq):
             startSample.append(int(samplesPerSec * startaftertrig[int(np.floor(i/Nfreq))]) )
             samplesPerDemod.append(int(samplesPerSec * duration[int(np.floor(i/Nfreq))]) )
-            
+
             if not demodCosinus:
                 samplesPerBlock.append(samplesPerDemod[i] )
-            
+
             else:
 
                 # Check wheter it is possible to cut each record in blocks of size equal
@@ -631,7 +643,7 @@ class Alazar935x(DllInstrument):
                     periodsPerBlock += 1
                 samplesPerBlock.append(int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],
                                                          samplesPerDemod[i])) )
-             
+
             NumberOfBlocks.append(np.divide(samplesPerDemod[i], samplesPerBlock[i]) )
             samplesMissing.append((-samplesPerDemod[i]) % samplesPerBlock[i] )
             # Makes the table that will contain the dataint(np.floor(i/Nfreq))
@@ -672,6 +684,11 @@ class Alazar935x(DllInstrument):
 
         board.abortAsyncRead()
 
+        if aux_trig:
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
+            time.sleep(0.1)
+            board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
+
         for i in range(bufferCount):
             buffer = buffers[i]
             buffer.__exit__()
@@ -696,13 +713,13 @@ class Alazar935x(DllInstrument):
             else:
                 coses.append(demodFormFile[2*i])
                 sines.append(demodFormFile[2*i+1])
-            
+
                 if len(coses[i]) < samplesPerBlock[i]:
                     numberZeroAdd.append(samplesPerBlock[i]-len(coses[i]))
                     LengthCosine.append(len(coses[i]))
                     coses[i] = np.concatenate((coses[i],0*np.arange(numberZeroAdd[i])))
                     sines[i] = np.concatenate((sines[i],0*np.arange(numberZeroAdd[i])))
-            
+
 
         # prepare the structure of the answered array
 
@@ -721,14 +738,14 @@ class Alazar935x(DllInstrument):
                                     (chanLetter + 'Q' + index, str(data[0].dtype))]
         else:
             answerTypeDemod = 'f'
-            
+
 
         if average:
             answerDemod = np.zeros((1, Nfreq), dtype=answerTypeDemod)
-           
+
         else:
             answerDemod = np.zeros((int(recordsPerCapture/Nfreq),Nfreq), dtype=answerTypeDemod)
-          
+
 
         # Demodulate the data, average them if asked and return the result
 
@@ -741,8 +758,8 @@ class Alazar935x(DllInstrument):
                 chanLetter = 'B'
                 zerosDemod = 1 + int(np.floor(np.log10(NdemodB)))
                 index = str(i-NdemodA).zfill(zerosDemod)
-            angle = 2 * np.pi * freq[i] * startSample[i] / samplesPerSec
-                      
+            angle = -2 * np.pi * freq[i] * startSample[i] / samplesPerSec
+
             for j in np.arange(Nfreq):
                 if average:
                     dataFreq = np.array([data[i*Nfreq+j][k*Nfreq+j,:] for k in np.arange(int(recordsPerCapture/Nfreq))])
@@ -752,10 +769,10 @@ class Alazar935x(DllInstrument):
                     if not demodCosinus:
                         ansI = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansI
                         ansQ = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansQ
-                        
+
                     answerDemod[chanLetter + 'I' + index][0,j] = ansI * np.cos(angle) - ansQ * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + index][0,j] = ansI * np.sin(angle) + ansQ * np.cos(angle)
-            
+
                 else:
                     dataFreq = np.array([data[i*Nfreq+j][k*Nfreq+j,:] for k in np.arange(int(recordsPerCapture/Nfreq))])
                     ansI = 2 * np.mean((dataFreq*coses[i]).reshape(int(recordsPerCapture/Nfreq), -1), axis=1)
@@ -763,10 +780,10 @@ class Alazar935x(DllInstrument):
                     if not demodCosinus:
                         ansI = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansI
                         ansQ = (LengthCosine[i]+numberZeroAdd[i])/LengthCosine[i]*ansQ
-                
+
                     answerDemod[chanLetter + 'I' + index][:,j] = ansI[:] * np.cos(angle) - ansQ[:] * np.sin(angle)
                     answerDemod[chanLetter + 'Q' + index][:,j] = ansI[:] * np.sin(angle) + ansQ[:] * np.cos(angle)
-                
+
 
         return answerDemod
     

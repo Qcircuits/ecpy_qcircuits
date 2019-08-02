@@ -29,9 +29,9 @@ enamldef DemodAlazarView(InstrView): view:
 
     constraints = [vbox(
                     grid([instr_label, traces, buffer, average, averaging,
-                          trigRange, trigLevel],
+                          trigRange, trigLevel, aux_trig],
                          [instr_selection, traces_val, buffer_val,
-                          average_val, averaging, trigRange_val, trigLevel_val]),
+                          average_val, averaging_val, trigRange_val, trigLevel_val, aux_trig_val]),
                     hbox(demodA,demodB),
                     hbox(traceA,traceB),
                     demodForm),
@@ -55,11 +55,17 @@ enamldef DemodAlazarView(InstrView): view:
     CheckBox: average_val:
         checked := task.average
 
-    Container: averaging:     
+    Container: averaging:
+        padding = 0
         Conditional:
             condition << average_val.checked
             Label:
                 text = 'Number of points'
+
+    Container: averaging_val:
+        padding = 0
+        Conditional:
+            condition << average_val.checked
             Field:
                 text := task.Npoints
 
@@ -73,6 +79,15 @@ enamldef DemodAlazarView(InstrView): view:
         text = 'Trigger level (V)'
     Field: trigLevel_val:
         text := task.triglevel
+
+    Label: aux_trig:
+        text = 'AUX trigger'
+    CheckBox: aux_trig_val:
+        checked := task.aux_trig
+        tool_tip = fill(cleandoc(
+                        '''When this is checked, the Alazard card will send a 100ms 5V pulse on its AUX IO port
+                           whenever it is ready to start capturing data or is done capturing data'''))
+
 
     GroupBox: demodA:
         title = 'Channel A demodulation settings'
@@ -221,7 +236,7 @@ enamldef DemodAlazarView(InstrView): view:
     GroupBox: demodForm:
         title = 'Demodulation function'
 
-        
+
         Label: demodFormFile:
             text = 'Custom Function used for the demodulation'
         Field: demodFormFile_val:
@@ -230,8 +245,8 @@ enamldef DemodAlazarView(InstrView): view:
                                      instead of cosinus and sinus. The first one will replace
                                      cosinus, the second will replace sinus.
                                      If empty classical demodulation used.'''))
-            
-            
+
+
 enamldef VNAAlazarView(InstrView): view:
 
     constraints = [vbox(
@@ -260,7 +275,7 @@ enamldef VNAAlazarView(InstrView): view:
     CheckBox: average_val:
         checked := task.average
 
-    Container: averaging:     
+    Container: averaging:
         Conditional:
             condition << average_val.checked
 
@@ -343,15 +358,15 @@ enamldef VNAAlazarView(InstrView): view:
     GroupBox: demodForm:
         title = 'Demodulation function'
 
-        
+
         Label: demodFormFile:
             text = 'Functions used for the demodulation'
         Field: demodFormFile_val:
             text := task.demodFormFile
-            tool_tip = fill(cleandoc('''list containing all functions for the demodulation. 
-                                     file by twins'''))
-            
-            
+            tool_tip = fill(cleandoc('''list containing all functions for the demodulation.
+                                     file by twins'''))            
+
+
 enamldef FFTAlazarView(InstrView): view:
 
     constraints = [vbox(
@@ -462,4 +477,4 @@ enamldef FFTAlazarView(InstrView): view:
             checked := task.powerPhaseB
             tool_tip = fill(cleandoc(
                             '''Compute the absolute value and the phase of the fft before averaging'''))
-        
+		
