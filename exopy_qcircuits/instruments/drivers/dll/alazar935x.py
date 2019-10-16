@@ -208,7 +208,7 @@ class Alazar935x(DllInstrument):
     def get_demod(self, startaftertrig, duration, recordsPerCapture,
                   recordsPerBuffer, timestep, freq, average, NdemodA, NdemodB,
                   NtraceA, NtraceB, Npoints, demodFormFile, demodCosinus, aux_trig,
-				  powerbool):
+				  power):
         board = ats.Board()
 
         # Number of samples per record: must be divisible by 32
