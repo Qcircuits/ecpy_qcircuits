@@ -145,7 +145,7 @@ class SetRFPeriodTask(InterfaceableTaskMixin, InstrumentTask):
         return period*CONVERSION_FACTORS_TIME[self.unit][unit]
 
 
-class SetRFPowerTask(InterfaceableTaskMixin, InstrumentTask):
+class SetRFENAPowerTask(InterfaceableTaskMixin, InstrumentTask):
     """Set the power of the signal delivered by the source.
 
     """

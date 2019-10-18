@@ -231,7 +231,7 @@ enamldef QcircuitsManifest(PluginManifest):
                             'GetAWGConfigView')
                     instruments = ['exopy_hqc_legacy.Legacy.AWG']
                 Task:
-                    task = 'rf_ENA_tasks:SetRFPowerTask'
+                    task = 'rf_ENA_tasks:SetRFENAPowerTask'
                     view = 'views.rf_ENA_views:RFPowerView'
                     Interface:
                         interface = 'ena_tasks:PNASetRFPowerInterface'
