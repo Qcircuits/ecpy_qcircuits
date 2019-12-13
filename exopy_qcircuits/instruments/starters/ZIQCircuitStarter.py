@@ -16,7 +16,7 @@ from exopy_hqc_legacy.instruments.starters.legacy_starter import LegacyStarter
 
 
 class ZIQCircuitStarter(LegacyStarter):
-    """Starter for legacy ZI instruments.
+    """Starter for ZI instruments.
 
     """
     def format_connection_infos(self, infos):
@@ -28,3 +28,22 @@ class ZIQCircuitStarter(LegacyStarter):
         del i['serial_number']
         return i
     
+    def check_infos(self, driver_cls, connection, settings):
+        """Attempt to open the connection to the instrument.
+
+        """
+        c = self.format_connection_infos(connection)
+        c.update(settings)
+        driver = None
+        '''
+        try:
+            driver = driver_cls(c)
+            res = driver.connected
+        except Exception:
+            return False, format_exc()
+        finally:
+            if driver is not None:
+                driver.close_connection()
+       < '''
+        return True, ('Instrument does not appear to be connected but no '
+                     'exception was raised.')

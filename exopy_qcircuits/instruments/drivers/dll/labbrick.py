@@ -13,7 +13,7 @@ This module defines drivers for LabBrick using DLL Library.
     LabBrickLMS103
 
 
-To read well the Dll of the LabBrick, Visual C++ Studio 2013 is needed.
+To read the Dll of the LabBrick correctly, Visual C++ Studio 2013 is needed.
 
 """
 from ..driver_tools import (InstrIOError, secure_communication,

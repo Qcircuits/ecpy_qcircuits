@@ -6,7 +6,7 @@
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
-"""Task perform measurements for the UFHLI zurich instruments.
+"""Task perform measurements for the HDAWG zurich instruments.
 
 """
 from __future__ import (division, unicode_literals, print_function,
@@ -19,6 +19,8 @@ import time
 from inspect import cleandoc
 from collections import OrderedDict
 import os
+from operator import mul
+from functools import reduce
 
 from atom.api import (Bool, Unicode, Enum, set_default,Typed)
 
@@ -32,8 +34,8 @@ VAL_INT = validators.Feval(types=numbers.Integral)# -*- coding: utf-8 -*-
 def eval_with_units(task,evaluee):
     value = task.format_and_eval_string(evaluee[0])
     unit = str(evaluee[1])
-    unitlist = ['','none', 'ns', 'GHz' ,'clock_samples', 's', 'µs','ns_to_clck'] #from views
-    multlist  = [1,1,1e-9,1e9,1,1,1e-6,1/3.33] #corresponding to above list
+    unitlist = ['','none', 'ns', 'GHz', 'MHz' ,'clock_samples', 's', 'µs','ns_to_clck'] #from views
+    multlist  = [1,1,1e-9,1e9,1e6,1,1,1e-6,1/3.33] #corresponding to above list
     unitdict = dict(zip(unitlist,multlist))
 
     clckrate_command = '/%s/system/clocks/sampleclock/freq' %task.driver.device
@@ -112,10 +114,18 @@ class PulseTransferHDAWGTask(InstrumentTask):
         
         self.driver.TransferSequence(awg_program)
 
+
         # Start the AWG in single-shot mode. CAREFUL this does not activate the outputs
         self.driver.daq.setInt('/%s/awgs/0/enable' %device, 1) # start/stop equiv
         self.driver.daq.sync()
         
+        time.sleep(0.5) #gives HDAWG time to send commands to various output settings (oscillators etc etc)
+        
+        #now wait for the signal outputs to set the correct delays
+        while not reduce(mul, [1-self.driver.daq.getInt('/{}/sigouts/{}/busy'.format(device,i)) for i in self.driver.channels], 1):
+            time.sleep(0.5)
+            
+        self.driver.daq.sync()
 class SetParametersHDAWGTask(InstrumentTask):
     """ Set Lock-in, AWG and Ouput Parameters of UHFLI.
         
@@ -173,6 +183,7 @@ class SetParametersHDAWGTask(InstrumentTask):
 #        ['User Register', 'Oscillator', 'Waveform Amplitude','Phase shift',
 #                   'LowPass order','LowPass TC','Osc of Demod ','Trig of Demod',
 #                   'Output1 Demod','Output2 Demod']
+        wait_after_sync = False
         for p, v in self.parameterToSet.items():
             if v[0] == 'Waveform Amplitude':
                 channel = self.format_and_eval_string(v[1])-1
@@ -202,12 +213,35 @@ class SetParametersHDAWGTask(InstrumentTask):
                 awg = channel//2 #2 channels per AWG
                 channel = channel%2
                 exp_setting=exp_setting + [['/%s/awgs/%d/outputs/%d/hold' % (device,awg,channel), value]]
+            elif v[0] == 'Modulation Mode':
+                channel = self.format_and_eval_string(v[1])-1
+                if v[2] == 'Off':
+                    value = 0
+                elif v[2] in ['1','3','5','7']:
+                    value = 1
+                elif v[2] in ['2','4','6','8']:
+                    value = 2
+                elif v[2] == 'Advanced':
+                    value = 5
+                else:
+                    print('Modulation mode not supported')
+                    raise ValueError
+                        
+                exp_setting = exp_setting + [['/{}/awgs/{}/outputs/{}/modulation/mode'.format(device, (int(v[1])-1)//2, (int(v[1])-1)%2),value]]
+                wait_after_sync = True
+                
             else:
                 print('not an interfaced variable')
                                 
         self.driver.daq.set(exp_setting)
         self.driver.daq.sync()
-
+        
+        if wait_after_sync: #sometimes we need to wait a bit for the AWG cores to synchronise
+            time.sleep(0.5)
+            while not reduce(mul, [1-self.driver.daq.getInt('/{}/sigouts/{}/busy'.format(device,i)) for i in self.driver.channels], 1):
+                time.sleep(0.5)
+                
+        self.driver.daq.sync()
 class OutputOnOffHDAWGTask(InstrumentTask):
     
     channellist = Unicode().tag(pref=True)

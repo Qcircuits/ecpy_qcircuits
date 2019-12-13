@@ -4,7 +4,7 @@
 :Contains:
     UHFLI
 
-Python package zhinst from Zurick Instruments need to be install 
+Python package zhinst from Zurich Instruments needs to be installed
 
 """
 
