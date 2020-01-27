@@ -125,6 +125,12 @@ enamldef QcircuitsManifest(PluginManifest):
         Tasks:
             path = 'exopy_qcircuits.tasks.tasks'
             Tasks:
+                path='utils'
+                group='instr'
+                Task:
+                    task = 'array_loop_tasks:FluxoniumFluxMapArrayTask'
+                    view = 'views.array_loop_views:FluxoniumFluxMapArrayView'
+            Tasks:
                 path = 'instr'
                 group = 'instr'
                 Task:
