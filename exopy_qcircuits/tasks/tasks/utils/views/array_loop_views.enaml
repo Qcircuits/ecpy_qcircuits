@@ -1,0 +1,110 @@
+"""Views of the array loop tasks
+
+"""
+from enaml.layout.api import grid
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, Splitter,
+                               SplitItem, Container)
+
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy.tasks.api import EVALUATER_TOOLTIP, BaseTaskView
+
+enamldef FluxoniumFluxMapArrayView(BaseTaskView): view:
+
+    constraints << [grid([ec_lab,ej_lab,el_lab,N_lab,phi0_lab,phihalf_lab,
+                          vmin_lab,vmax_lab,vstep_lab,fmin_lab,fmax_lab,
+                          fband_lab,fstep_lab,t_lab],
+                         [ec_val,ej_val,el_val,N_val,phi0_val,phihalf_val,
+                          vmin_val,vmax_val,vstep_val,fmin_val,fmax_val,
+                          fband_val,fstep_val,t_val]),
+                    ec_val.width == 100,ej_val.width == 100,el_val.width == 100,
+                    N_val.width == 100,phi0_val.width == 100,
+                    phihalf_val.width == 100,vmin_val.width == 100,
+                    vmax_val.width == 100,vstep_val.width == 100,
+                    fmin_val.width == 100,fmax_val.width == 100,
+                    fband_val.width == 100,fstep_val.width == 100,
+                    t_val.width == 100]
+
+    Label: ec_lab:
+        text = 'Ec:'
+    Field: ec_val:
+        text := task.Ec
+        tool_tip = ('Ec in GHz')
+        
+    Label: ej_lab:
+        text = 'Ej:'
+    Field: ej_val:
+        text := task.Ej
+        tool_tip = ('Ej in GHz')
+        
+    Label: el_lab:
+        text = 'El:'
+    Field: el_val:
+        text := task.El
+        tool_tip = ('El in GHz')
+        
+    Label: N_lab:
+        text = 'N:'
+    Field: N_val:
+        text := task.N_calculated_fluxes
+        tool_tip = ('Number of fluxes to calculate using qutip. Defines how precisely the boxes in frequency will follow the transition.')
+        
+    Label: phi0_lab:
+        text = 'Phi0 (V):'
+    Field: phi0_val:
+        text := task.fluxquantum_volts
+        tool_tip = ('How many volts for a single flux quantum?')
+    
+    Label: phihalf_lab:
+        text = 'Phi0/2 (V):'
+    Field: phihalf_val:
+        text := task.fluxhalf_volts
+        tool_tip = ('At which voltage are we at half-flux?')
+        
+    Label: vmin_lab:
+        text = 'Volt min:'
+    Field: vmin_val:
+        text := task.volt_min
+        tool_tip = ('Start of voltage sweep')
+        
+    Label: vmax_lab:
+        text = 'Volt max:'
+    Field: vmax_val:
+        text := task.volt_max
+        tool_tip = ('End of voltage sweep')
+        
+    Label: vstep_lab:
+        text = 'Volt Step:'
+    Field: vstep_val:
+        text := task.volt_granularity
+        tool_tip = ('Voltage step')
+        
+    Label: fmin_lab:
+        text = 'Freq min:'
+    Field: fmin_val:
+        text := task.freq_min
+        tool_tip = ('Minimum allowed frequency')
+        
+    Label: fmax_lab:
+        text = 'Freq max:'
+    Field: fmax_val:
+        text := task.freq_max
+        tool_tip = ('Maximum allowed frequency')
+        
+    Label: fband_lab:
+        text = 'Freq band:'
+    Field: fband_val:
+        text := task.freq_band
+        tool_tip = ('Frequency band to measure around the calculated frequency. The frequency band is the total width of the box.')
+        
+    Label: fstep_lab:
+        text = 'Freq step:'
+    Field: fstep_val:
+        text := task.freq_granularity
+        tool_tip = ('Frequency step')
+        
+    Label: t_lab:
+        text = 'Transition:'
+    Field: t_val:
+        text := task.transition
+        tool_tip = ('Transition to follow in the sweep. Should be in the format "a-b" without the " and where a and b are single digit numbers.')
+    
