@@ -122,6 +122,7 @@ class SmartSaveTask(SimpleTask):
                                      self.datatype, compression="gzip")
             f.attrs['header'] = self.format_string(self.header)
             f.attrs['count_calls'] = 0
+            parameters_group.attrs['parameters_order'] = list(reversed(self._loop_paths.keys()))
 
             self.initialized = True
 
@@ -227,11 +228,11 @@ class SmartSaveTask(SimpleTask):
     def detect_loops(self):
         n = self.parent
         tmp = []
+        self._loop_paths = OrderedDict()
         while not isinstance(n, RootTask):
             if isinstance(n, LoopTask):
                 if n.name not in self.saved_parameters:
                     tmp.append((n.name, f"{{{n.name}_loop_values}}"))
-                    # tmp.append((n.name, "1"))
                 else:
                     tmp.append((n.name, self.saved_parameters[n.name]))
                 self._loop_paths[n.name] = n.path
@@ -242,7 +243,7 @@ class SmartSaveTask(SimpleTask):
     _formatted_labels = List()
 
     #: List of the paths of the loops
-    _loop_paths = Dict()
+    _loop_paths = Typed(OrderedDict, ())
 
     #: Data dimensions:
     _dims = List()
