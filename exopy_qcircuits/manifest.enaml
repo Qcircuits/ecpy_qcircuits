@@ -240,6 +240,15 @@ enamldef QcircuitsManifest(PluginManifest):
                                  'views.ena_views:IPNAPortLabel',
                                  'views.ena_views:IPNAPortValue']
                         instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
+            Tasks:
+                path = 'util'
+                group = 'util'
+
+                Task:
+                    task = 'smart_save_task:SmartSaveTask'
+                    view = 'views.smart_save_view:SmartSaveView'
+
+
     Extension:
         id = 'contexts'
         point = 'exopy.pulses.contexts'
