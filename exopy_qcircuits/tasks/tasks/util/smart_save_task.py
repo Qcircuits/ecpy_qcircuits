@@ -79,7 +79,7 @@ class SmartSaveTask(SimpleTask):
             filename = self.format_string(self.filename)
             full_path = os.path.join(full_folder_path, filename)
             try:
-                self.file_object = h5py.File(full_path, 'w')
+                self.file_object = h5py.File(full_path, 'w', libver='latest')
             except IOError:
                 log = logging.getLogger()
                 msg = "In {}, failed to open the specified file."
@@ -123,6 +123,7 @@ class SmartSaveTask(SimpleTask):
             f.attrs['header'] = self.format_string(self.header)
             f.attrs['count_calls'] = 0
             parameters_group.attrs['parameters_order'] = list(reversed(self._loop_paths.keys()))
+            f.swmr_mode = True
 
             self.initialized = True
 
@@ -144,6 +145,7 @@ class SmartSaveTask(SimpleTask):
                 f['data'][labels[i]][index] = value
 
         f.attrs['count_calls'] = count_calls + 1
+        f.flush()
 
     def check(self, *args, **kwargs):
         """Check that all the parameters are correct.
