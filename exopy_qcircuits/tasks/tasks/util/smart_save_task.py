@@ -29,6 +29,8 @@ from exopy.tasks.tasks.logic.loop_task import LoopTask
 from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
 from exopy.utils.traceback import format_exc
 
+logger = logging.getLogger(__name__)
+
 
 class SmartSaveTask(SimpleTask):
     """Save the specified data in a HDF5 file.
@@ -134,14 +136,13 @@ class SmartSaveTask(SimpleTask):
         for i, v in enumerate(self.saved_values.values()):
             value = self.format_and_eval_string(v)
             index = np.unravel_index(count_calls, self._dims)
-            if isinstance(value, np.ndarray):
-                names = value.dtype.names
-                if names:
-                    for m in names:
-                        f['data'][labels[i] + '_' + m][index] = value[m]
-                else:
-                    f['data'][labels[i]][index] = value
+            if isinstance(value, np.ndarray) and value.dtype.names:
+                for m in value.dtype.names:
+                    f['data'][labels[i] + '_' + m][index] = value[m]
             else:
+                if isinstance(value, np.ndarray) value.size != f['data'][labels[i]][index].size:
+                    logger.warning("Incorrect data size. Attempting to resize the data")
+                    value.resize(f['data'][labels[i]][index].shape)
                 f['data'][labels[i]][index] = value
 
         f.attrs['count_calls'] = count_calls + 1
