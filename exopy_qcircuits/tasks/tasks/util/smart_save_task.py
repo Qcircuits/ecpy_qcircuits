@@ -140,7 +140,7 @@ class SmartSaveTask(SimpleTask):
                 for m in value.dtype.names:
                     f['data'][labels[i] + '_' + m][index] = value[m]
             else:
-                if isinstance(value, np.ndarray) value.size != f['data'][labels[i]][index].size:
+                if value.size != f['data'][labels[i]][index].size:
                     logger.warning("Incorrect data size. Attempting to resize the data")
                     value.resize(f['data'][labels[i]][index].shape)
                 f['data'][labels[i]][index] = value
