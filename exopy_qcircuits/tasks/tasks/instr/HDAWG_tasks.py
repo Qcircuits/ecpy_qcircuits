@@ -124,12 +124,10 @@ class PulseTransferHDAWGTask(InstrumentTask):
         for i,cmnd in enumerate(command_strings):
             if command_prefixes[i] == 'setInt':
                 val = self.driver.daq.getInt(cmnd)
-                print(val)
                 if abs(val-self.format_and_eval_string(command_values[i])) > 0.1:
                     self.driver.daq.setInt(cmnd,self.format_and_eval_string(command_values[i]))
             elif command_prefixes[i] == 'setDouble':
                 val = self.driver.daq.getDouble(cmnd)
-                print(val)
                 if abs(val-self.format_and_eval_string(command_values[i])) > 0.001:
                     self.driver.daq.setDouble(cmnd,self.format_and_eval_string(command_values[i]))
             else:
@@ -171,7 +169,7 @@ class SetParametersHDAWGTask(InstrumentTask):
 
         device = self.driver.device
         #self.driver.daq.getInt('/%s/system/awg/channelgrouping' %device) 0 = 4x2; 1 = 2x4; 2 = 1x8
-        ch_group = 2**(self.driver.daq.getInt('/%s/system/awg/channelgrouping' %device)+1) #number of channels per group
+        #ch_group = 2**(self.driver.daq.getInt('/%s/system/awg/channelgrouping' %device)+1) #number of channels per group
         
         exp_setting = []
 
