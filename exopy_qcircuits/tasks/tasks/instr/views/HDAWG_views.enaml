@@ -41,7 +41,7 @@ enamldef modified_values(Container):
 
     QtLineCompleter: k:
         text := model.key
-        entries_updater = model.task.list_accessible_database_entries
+        #entries_updater = model.task.list_accessible_database_entries
         tool_tip = ('Labels to change in the AWG txt file')
         
     QtLineCompleter: v0:
@@ -218,7 +218,7 @@ enamldef parameter_to_set(Container):
             Label: v3txt:
                 text = 'Unit :'
             ObjectCombo: v3:
-                items <<  ['none', 'ns', 'GHz' ,'clock_samples', 's', 'µs', 'ns_to_clck']
+                items <<  ['','none', 'ns', 'GHz', 'MHz' ,'clock_samples', 's', 'µs','ns_to_clck']
                 tool_tip = ('Unit of the item')
                 selected := model.value3
                 
@@ -228,7 +228,7 @@ enamldef parameter_to_set(Container):
                 text = 'Value :'
             QtLineCompleter:
                 text := model.value3
-                #entries_updater = model.task.list_accessible_database_entries
+                entries_updater = model.task.list_accessible_database_entries
                 tool_tip =('''Value of waveform amplitude. Amplitude is a number between 0 and 1.''')
             
 enamldef PulseTransferHDAWGView(InstrView): view:
