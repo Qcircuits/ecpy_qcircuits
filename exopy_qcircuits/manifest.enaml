@@ -128,8 +128,14 @@ enamldef QcircuitsManifest(PluginManifest):
                 path='utils'
                 group='instr'
                 Task:
-                    task = 'array_loop_tasks:FluxoniumFluxMapArrayTask'
-                    view = 'views.array_loop_views:FluxoniumFluxMapArrayView'
+                    task = 'Fluxonium_tasks:FitRamseyTask'
+                    view = 'views.Fluxonium_views:FitRamseyView'
+                Task:
+                    task = 'Fluxonium_tasks:FluxoniumFluxMapArrayTask'
+                    view = 'views.Fluxonium_views:FluxoniumFluxMapArrayView'
+                Task:
+                    task = 'Fluxonium_tasks:FindFluxDetuningTask'
+                    view = 'views.Fluxonium_views:FindFluxDetuningView'
             Tasks:
                 path = 'instr'
                 group = 'instr'

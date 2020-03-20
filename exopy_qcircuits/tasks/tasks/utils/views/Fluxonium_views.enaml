@@ -2,11 +2,12 @@
 
 """
 from enaml.layout.api import grid
-from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, Splitter,
-                               SplitItem, Container)
+from enaml.widgets.api import (Label, Field, CheckBox)
 
 from exopy.utils.widgets.qt_completers import QtLineCompleter
 from exopy.tasks.api import EVALUATER_TOOLTIP, BaseTaskView
+
+from textwrap import fill
 
 enamldef FluxoniumFluxMapArrayView(BaseTaskView): view:
 
@@ -108,3 +109,85 @@ enamldef FluxoniumFluxMapArrayView(BaseTaskView): view:
         text := task.transition
         tool_tip = ('Transition to follow in the sweep. Should be in the format "a-b" without the " and where a and b are single digit numbers.')
     
+enamldef FitRamseyView(BaseTaskView): view:
+
+    constraints << [grid([data_lab,time_lab,I_lab,Q_lab,plot_lab],
+                         [data_val,time_val,I_val,Q_val,plot_val]),
+                    time_val.width==I_val.width==Q_val.width==plot_val.width==100]
+    
+    Label: data_lab:
+        text = 'Target data'
+    QtLineCompleter: data_val:
+        hug_width = 'ignore'
+        text := task.target_data
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = EVALUATER_TOOLTIP
+
+    Label: time_lab:
+        text = 'Time key:'
+    Field: time_val:
+        text := task.time_key
+        tool_tip = ('H5PY key for the Ramsey times')
+        
+    Label: I_lab:
+        text = 'I key:'
+    Field: I_val:
+        text := task.I_key
+        tool_tip = ('H5PY key for the I quadrature')
+        
+    Label: Q_lab:
+        text = 'Q key:'
+    Field: Q_val:
+        text := task.Q_key
+        tool_tip = ('H5PY key for the Q quadrature')
+        
+    Label: plot_lab:
+        text = 'Show plots'
+    CheckBox: plot_val:
+        checked := task.show_plots
+        tool_tip = fill("Should the task show some intermediate plots so you can validate the fitting algorithm ?", 60)
+        
+enamldef FindFluxDetuningView(BaseTaskView): view:
+
+    constraints << [grid([detuning_lab,freq_lab,coupl_lab,ftv_lab,delta_lab],
+                         [detuning_val,freq_val,coupl_val,ftv_val,delta_val]),
+                    detuning_val.width==freq_val.width==coupl_val.width==ftv_val.width==delta_val.width==100]
+    
+       
+    Label: detuning_lab:
+        text = 'Measured detuning:'
+    QtLineCompleter: detuning_val:
+        hug_width = 'ignore'
+        text := task.measured_detuning
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Detuning in MHz measured by a Ramsey oscillation')
+        
+    Label: freq_lab:
+        text = 'Ramsey Drive Freq:'
+    QtLineCompleter: freq_val:
+        hug_width = 'ignore'
+        text := task.drive_freq
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Detuning in MHz measured by a Ramsey oscillation')
+        
+    Label: coupl_lab:
+        text = 'Coupling'
+    Field: coupl_val:
+        text := task.coupling
+        tool_tip = ('Coupling between the two potential wells at half flux (function constant)')
+        
+    Label: ftv_lab:
+        text = 'Freq to Volt:'
+    Field: ftv_val:
+        text := task.freq_to_volt
+        tool_tip = ('Constant which gives the scaling between frequency and voltage close to half flux')
+    
+    Label: delta_lab:
+        text = 'Max Delta Volt:'
+    QtLineCompleter: delta_val:
+        hug_width = 'ignore'
+        text := task.max_delta
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Maximum allowed excursion fron the current voltage setting.'+
+                    'Measurement will fail if the difference between the current'+
+                    'voltage and the to be set voltage is larger than this value.')
