@@ -587,7 +587,7 @@ class KeysightENAChannel(BaseInstrument):
         points = self._pna.ask_for_values('SENSe{}:SWEep:POINts?'.format(
                                           self._channel))
         if points:
-            return points[0]
+            return int(points[0])
         else:
             raise InstrIOError(cleandoc('''Agilent PNA did not return the
                     channel {} sweep point number'''.format(self._channel)))
