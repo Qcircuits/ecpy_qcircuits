@@ -75,6 +75,10 @@ class SmartSaveTask(SimpleTask):
         """
         # Initialisation.
         if not self.initialized:
+            for name, path in self._loop_paths.items():
+                self._dims.append(self.database.get_value(path, f"{name}_point_number"))
+            self._dims.reverse()
+
             self._formatted_labels = []
 
             full_folder_path = self.format_string(self.folder)
@@ -124,7 +128,7 @@ class SmartSaveTask(SimpleTask):
                                      self.datatype, compression="gzip")
             f.attrs['header'] = self.format_string(self.header)
             f.attrs['count_calls'] = 0
-            parameters_group.attrs['parameters_order'] = list(reversed(self._loop_paths.keys()))
+            # parameters_group.attrs['parameters_order'] = list(reversed(self._loop_paths.keys()))
             f.swmr_mode = True
 
             self.initialized = True
@@ -141,8 +145,9 @@ class SmartSaveTask(SimpleTask):
                     f['data'][labels[i] + '_' + m][index] = value[m]
             else:
                 expected_size = f['data'][labels[i]][index].size
-                if value.size != expected_size:
+                if isinstance(value, np.ndarray) and value.size != expected_size:
                     logger.warning("Incorrect data size. Attempting to resize the data")
+                    value = np.copy(value)
                     value.resize(f['data'][labels[i]][index].shape)
                 f['data'][labels[i]][index] = value
 
@@ -154,10 +159,6 @@ class SmartSaveTask(SimpleTask):
 
         """
         self.detect_loops()
-
-        for name, path in self._loop_paths.items():
-            self._dims.append(self.database.get_value(path, f"{name}_point_number"))
-        self._dims.reverse()
 
         err_path = self.get_error_path()
         test, traceback = super(SmartSaveTask, self).check(*args, **kwargs)
