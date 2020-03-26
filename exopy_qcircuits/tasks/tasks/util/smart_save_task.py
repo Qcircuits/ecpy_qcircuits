@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class SmartSaveTask(SimpleTask):
     """Save the specified data in a HDF5 file.
 
-    Try to detect if it is place inside of nested loops and reshape
+    Try to detect if it is placed inside of nested loops and reshape
     the data accordingly.
 
     """
@@ -128,7 +128,6 @@ class SmartSaveTask(SimpleTask):
                                      self.datatype, compression="gzip")
             f.attrs['header'] = self.format_string(self.header)
             f.attrs['count_calls'] = 0
-            # parameters_group.attrs['parameters_order'] = list(reversed(self._loop_paths.keys()))
             f.swmr_mode = True
 
             self.initialized = True
@@ -232,17 +231,20 @@ class SmartSaveTask(SimpleTask):
 
     def detect_loops(self):
         n = self.parent
-        tmp = []
-        self._loop_paths = OrderedDict()
+        tmp_names = []
+        tmp_paths = OrderedDict()
         while not isinstance(n, RootTask):
             if isinstance(n, LoopTask):
                 if n.name not in self.saved_parameters:
-                    tmp.append((n.name, f"{{{n.name}_loop_values}}"))
+                    tmp_names.append((n.name, f"{{{n.name}_loop_values}}"))
                 else:
-                    tmp.append((n.name, self.saved_parameters[n.name]))
-                self._loop_paths[n.name] = n.path
+                    tmp_names.append((n.name, self.saved_parameters[n.name]))
+                tmp_paths[n.name] = n.path
             n = n.parent
-        self.saved_parameters = OrderedDict(tmp)
+        # Only refresh the names if the number of nested loops has changed
+        if len(tmp_names) != len(self.saved_parameters):
+            self.saved_parameters = OrderedDict(tmp_names)
+        self._loop_paths = OrderedDict(tmp_paths)
 
     #: List of the formatted names of the entries.
     _formatted_labels = List()
