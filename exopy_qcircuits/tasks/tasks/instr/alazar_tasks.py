@@ -215,189 +215,92 @@ class DemodAlazarTask(InstrumentTask):
         tracetimeA = self.format_string(self.tracetimeaftertrig, 10**-9, 1)
         tracetimeB = self.format_string(self.tracetimeaftertrigB, 10**-9, 1)
         demodFormFile = self.format_and_eval_string(self.demodFormFile)
-        
-        #Prepare the parameters potentially impacted by loops        
-        #tracesnumber
-        string = self.tracesnumber
-        aux_string = string.split('{') 
-        if len(aux_string) > 1:
-            #Analysis of the expression and link to the loop values           
-            array_recordsPerCapture = self.format_and_eval_string_loop(self.tracesnumber)
-            list_recordsPerCapture = array_recordsPerCapture.tolist()            
-        else : 
-            #Usual case
-            list_recordsPerCapture = [self.format_and_eval_string(self.tracesnumber)]
-            
-        #durationA
-        stringA= self.duration
-        aux_stringA = stringA.split('{')
-        bool_loop_durationA = False        
-        if len(aux_stringA) > 1:
-            #Analysis of the expression and link to the loop values 
-            list_durationA = self.format_string_loop(self.duration, 10**-9, 1)
-            bool_loop_durationA = True
-        else :
-            #Usual case
-            list_durationA = [self.format_string(self.duration, 10**-9, 1)]
-        
-        #durationB
-        stringB= self.durationB
-        aux_stringB = stringB.split('{')
-        bool_loop_durationB = False        
-        if len(aux_stringB) > 1:
-            #Analysis of the expression and link to the loop values 
-            list_durationB = self.format_string_loop(self.durationB, 10**-9, 1)
-            bool_loop_durationB = True
-        else :
-            #Usual case
-            list_durationB = [self.format_string(self.durationB, 10**-9, 1)]
-            
-        #tracedurationA
-        stringtraceA= self.traceduration
-        aux_stringtraceA = stringtraceA.split('{')
-        bool_loop_durationtraceA = False        
-        if len(aux_stringtraceA) > 1:
-            #Analysis of the expression and link to the loop values 
-            list_durationtraceA = self.format_string_loop(self.traceduration, 10**-9, 1)
-            bool_loop_durationtraceA = True
-        else :
-            #Usual case
-            list_durationtraceA = [self.format_string(self.traceduration, 10**-9, 1)]
 
-        #tracedurationB
-        stringtraceB= self.tracedurationB
-        aux_stringtraceB = stringtraceB.split('{')
-        bool_loop_durationtraceB = False        
-        if len(aux_stringtraceB) > 1:
-            #Analysis of the expression and link to the loop values 
-            list_durationtraceB = self.format_string_loop(self.tracedurationB, 10**-9, 1)
-            bool_loop_durationtraceB = True
-        else :
-            #Usual case
-            list_durationtraceB = [self.format_string(self.tracedurationB, 10**-9, 1)]    
+        NdemodA = len(durationA)
+        if 0 in durationA:
+            NdemodA = 0
+            timeA = []
+            durationA = []
+        NdemodB = len(durationB)
+        if 0 in durationB:
+            NdemodB = 0
+            timeB = []
+            durationB = []
+        NtraceA = len(tracedurationA)
+        if 0 in tracedurationA:
+            NtraceA = 0
+            tracetimeA = []
+            tracedurationA = []
+        NtraceB = len(tracedurationB)
+        if 0 in tracedurationB:
+            NtraceB = 0
+            tracetimeB = []
+            tracedurationB = []
+        if len(demodFormFile)== 0:
+            demodCosinus = 1;
+        else:
+            demodCosinus = 0;
+
+        startaftertrig = timeA + timeB + tracetimeA + tracetimeB
+        duration = durationA + durationB + tracedurationA + tracedurationB
+        timestepA = self.format_string(self.timestep, 10**-9, NdemodA)
+        timestepB = self.format_string(self.timestepB, 10**-9, NdemodB)
+        timestep = timestepA + timestepB
+        freqA = self.format_string(self.freq, 10**6, NdemodA)
+        freqB = self.format_string(self.freqB, 10**6, NdemodB)
+        freq = freqA + freqB      
+        samplesPerSec = 500000000.0         
         
-        #Initialize the list that will contain all the peaks of RAM         
-        pics_RAM_loops = []
-        #Loop for each parameter that can be impacted by a loop_value
-        for i_loop1 in range(len(list_recordsPerCapture)):
-            recordsPerCapture = list_recordsPerCapture[i_loop1]
-            
-            for i_loop2 in range(len(list_durationA)):
-                if bool_loop_durationA :
-                    durationA = [list_durationA[i_loop2]]
-                else :
-                    durationA = list_durationA[i_loop2]
-                    
-                for i_loop3 in range(len(list_durationB)):
-                    if bool_loop_durationB :
-                        durationB = [list_durationB[i_loop3]]
-                    else :
-                        durationB = list_durationB[i_loop3]
-                    
-                    for i_loop4 in range(len(list_durationtraceA)):
-                        if bool_loop_durationtraceA :
-                            tracedurationA = [list_durationtraceA[i_loop4]]
-                        else :
-                            tracedurationA = list_durationtraceA[i_loop4]
-                        
-                        for i_loop5 in range(len(list_durationtraceB)):
-                            if bool_loop_durationtraceB :
-                                tracedurationB = [list_durationtraceB[i_loop5]]
-                            else :
-                                tracedurationB = list_durationtraceB[i_loop5]
-                        
-                        #Prepare the other parameters
-                        NdemodA = len(durationA)
-                        if 0 in durationA:
-                            NdemodA = 0
-                            timeA = []
-                            durationA = []
-                        NdemodB = len(durationB)
-                        if 0 in durationB:
-                            NdemodB = 0
-                            timeB = []
-                            durationB = []
-                        NtraceA = len(tracedurationA)
-                        if 0 in tracedurationA:
-                            NtraceA = 0
-                            tracetimeA = []
-                            tracedurationA = []
-                        NtraceB = len(tracedurationB)
-                        if 0 in tracedurationB:
-                            NtraceB = 0
-                            tracetimeB = []
-                            tracedurationB = []
-                        if len(demodFormFile)== 0:
-                            demodCosinus = 1;
-                        else:
-                            demodCosinus = 0;
-                
-                        startaftertrig = timeA + timeB + tracetimeA + tracetimeB
-                        duration = durationA + durationB + tracedurationA + tracedurationB
-                        timestepA = self.format_string(self.timestep, 10**-9, NdemodA)
-                        timestepB = self.format_string(self.timestepB, 10**-9, NdemodB)
-                        timestep = timestepA + timestepB
-                        freqA = self.format_string(self.freq, 10**6, NdemodA)
-                        freqB = self.format_string(self.freqB, 10**6, NdemodB)
-                        freq = freqA + freqB      
-                        samplesPerSec = 500000000.0         
-                        
-                        #Initialize the RAM quantities
-                        taille_data = 0
-                        RAM_1=0 #RAM coming from Ndemod
-                        RAM_2=0 #RAM coming from Ntrace
-                        list_RAM=[] #storage of estimations of RAM of each demodulation and trace
-                        
-                        #Calculate the RAM needed
-                        samplesPerDemod_RAM = []
-                        
-                        #Calculate RAM_1 (in MB) coming from demodulations
-                        for i in range(NdemodA + NdemodB):
-                            samplesPerDemod_RAM.append(int(samplesPerSec * duration[i]) )
-                
-                            if timestep[i]:
-                                RAM_1 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
-                                list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
-                                #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
-                
-                            elif not demodCosinus:
-                                RAM_1 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
-                                list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
-                                #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
-                                
-                            else:
-                                # Check wheter it is possible to cut each record in blocks of size equal
-                                # to an integer number of periods
-                                periodsPerBlock = 1
-                                while (periodsPerBlock * samplesPerSec < freq[i] * samplesPerDemod_RAM[i]
-                                        and periodsPerBlock * samplesPerSec % freq[i]):
-                                    periodsPerBlock += 1
-                                RAM_1 += 0.1529388427734375*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i])) 
-                                list_RAM.append(0.1529388427734375*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i])))
-                                #0.1530609130859375 MB = deepgetsizeof(np.empty((20000,1)),set())/(1024*1024)
-                                #We make the assumption that the size of np.empty((a,b)) becomes linearly dependent on a and b at sufficiently high vallues of a and b
-                                #Here, recordsPerCapture will not be under 1000, which guaranties this assumption.
-                                
-                        #Calculate RAM_2 (in MB) coming from traces
-                        for i in (np.arange(NtraceA + NtraceB) + NdemodA + NdemodB):
-                            RAM_2 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
-                            list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
-                            #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
-                        
-                        taille_data = RAM_1 + RAM_2 #RAM used by the array data in MB
-                        
-                        #Determine the heights of RAM peaks linked to the wanted demodulations/traces 
-                        pics_RAM = []
-                        for k in range(len(list_RAM)):
-                            pics_RAM.append(list_RAM[k]*3+(taille_data-list_RAM[k])) #The data that is being demodulated needs 3 times its estimated RAM while the rest of the data (which has been or will be demodulated) still needs to be stored somewhere in the RAM
-                        estimation = max(pics_RAM) #The higher peak is the one that matters to determine if it is possible to execute the task or not
-                        
-                        #Addition of the estimated RAM for this set of parameters and conversion in GB
-                        pics_RAM_loops.append(estimation/1024)
-            
+        #Initialize the RAM quantities
+        taille_data = 0
+        RAM_1=0 #RAM issue des Ndemod
+        RAM_2=0 #RAM issue des Ntrace
+        list_RAM=[] #stockage des RAM estimées pour chacune des démodulations/traces
         
-        #Higher RAM estimation for all loops    
-        estimation_loops = max(pics_RAM_loops)
+        #Calculate the RAM needed
+        samplesPerDemod_RAM = []
+        
+        #Calculate RAM_1 (in MB) coming from demodulations
+        for i in range(NdemodA + NdemodB):
+            samplesPerDemod_RAM.append(int(samplesPerSec * duration[i]) )
+
+            if timestep[i]:
+                RAM_1 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
+                list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
+                #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
+
+            elif not demodCosinus:
+                RAM_1 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
+                list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
+                #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
+                
+            else:
+                # Check wheter it is possible to cut each record in blocks of size equal
+                # to an integer number of periods
+                periodsPerBlock = 1
+                while (periodsPerBlock * samplesPerSec < freq[i] * samplesPerDemod_RAM[i]
+                        and periodsPerBlock * samplesPerSec % freq[i]):
+                    periodsPerBlock += 1
+                RAM_1 += 0.1529388427734375*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i])) 
+                list_RAM.append(0.1529388427734375*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i])))
+                #0.1530609130859375 MB = deepgetsizeof(np.empty((20000,1)),set())/(1024*1024)
+                #We make the assumption that the size of np.empty((a,b)) becomes linearly dependent on a and b at sufficiently high vallues of a and b
+                #Here, recordsPerCapture will not be under 1000, which guaranties this assumption
+                
+        #Calculate RAM_2 (in MB) coming from traces
+        for i in (np.arange(NtraceA + NtraceB) + NdemodA + NdemodB):
+            RAM_2 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
+            list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
+            #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
+        
+        taille_data = RAM_1 + RAM_2 #RAM used by the array data in MB
+        
+        #Determine the heights of RAM peaks linked to the wanted demodulations/traces 
+        pics_RAM = []
+        for k in range(len(list_RAM)):
+            pics_RAM.append(list_RAM[k]*3+(taille_data-list_RAM[k]))
+        estimation = max(pics_RAM) #The higher peak is the one that matters to determine if the calculation is possible or not
+        estimation = (estimation/1024) 
         
         #Retrieval of quantities of available RAM : physical and total (physical+virtual)
         RAM_physique_dispo = psutil.virtual_memory()[1]/(1024**3) 
