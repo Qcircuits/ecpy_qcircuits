@@ -24,9 +24,7 @@ VAL_REAL = validators.Feval(types=numbers.Real)
 
 VAL_INT = validators.Feval(types=numbers.Integral)
 
-import psutil
-
-from exopy.tasks.tasks.string_evaluation import safe_eval 
+import psutil #used in the RAM estimation
 
 
 class DemodAlazarTask(InstrumentTask):
@@ -89,43 +87,6 @@ class DemodAlazarTask(InstrumentTask):
             return [elem*factor for elem in s]
         else:
             return [s*factor]*n
-    
-    
-    def format_and_eval_string_loop(self, string):
-        """Version of format_and_eval_string_loop specific to the RAM estimation"""
-        PREFIX = '_a'
-        database = self.database
-        
-        string_test = string.replace('value','loop_values')
-        aux_strings = string_test.split('{')
-        if len(aux_strings) > 1:
-            elements = [el
-                        for aux in aux_strings
-                        for el in aux.split('}')]
-            replacement_token = [PREFIX + str(i)
-                                 for i in range(len(elements[1::2]))]
-            repl = {PREFIX + str(i): database.get_value(self.path,
-                                                        key)
-                    for i, key in enumerate(elements[1::2])}
-            str_to_format = ''
-            for key in elements[::2]:
-                str_to_format += key + '{}'
-
-            str_to_format = str_to_format[:-2]
-
-            expr = str_to_format.format(*replacement_token)
-            return safe_eval(expr, repl)
-        else:
-            return safe_eval(string, {})
-        
-    def format_string_loop(self, string, factor, n):
-        """Version of format_string_loop specific to the RAM estimation"""
-        s = self.format_and_eval_string_loop(string)
-        if isinstance(s, list) or isinstance(s, tuple) or isinstance(s, np.ndarray):
-            return [elem*factor for elem in s]
-        else:
-            return [s*factor]*n
-    
 
     def check(self, *args, **kwargs):
         """
@@ -209,11 +170,16 @@ class DemodAlazarTask(InstrumentTask):
         
         #RAM estimation and test
         
-        #Prepare the parameters not impacted by loops                      
+        #Prepare the parameters
+        recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         timeA = self.format_string(self.timeaftertrig, 10**-9, 1)
+        durationA = self.format_string(self.duration, 10**-9, 1)
         timeB = self.format_string(self.timeaftertrigB, 10**-9, 1)
+        durationB = self.format_string(self.durationB, 10**-9, 1)
         tracetimeA = self.format_string(self.tracetimeaftertrig, 10**-9, 1)
+        tracedurationA = self.format_string(self.traceduration, 10**-9, 1)
         tracetimeB = self.format_string(self.tracetimeaftertrigB, 10**-9, 1)
+        tracedurationB = self.format_string(self.tracedurationB, 10**-9, 1)
         demodFormFile = self.format_and_eval_string(self.demodFormFile)
 
         NdemodA = len(durationA)
@@ -253,9 +219,9 @@ class DemodAlazarTask(InstrumentTask):
         
         #Initialize the RAM quantities
         taille_data = 0
-        RAM_1=0 #RAM issue des Ndemod
-        RAM_2=0 #RAM issue des Ntrace
-        list_RAM=[] #stockage des RAM estimées pour chacune des démodulations/traces
+        RAM_1=0 #RAM coming from demodulations
+        RAM_2=0 #RAM coming from traces
+        list_RAM=[] #storage of the RAM estimations from each demodulation/trace
         
         #Calculate the RAM needed
         samplesPerDemod_RAM = []
@@ -307,13 +273,13 @@ class DemodAlazarTask(InstrumentTask):
         RAM_totale_dispo = psutil.swap_memory()[2]/(1024**3) 
         
         #Return an error message if the estimated RAM exceeds the available physical RAM and give the user these values as well as the total available RAM (physical and virtual)
-        if (estimation_loops+3) > RAM_physique_dispo :
+        if (estimation+3) > RAM_physique_dispo :
             test = False
             traceback[self.path + '/' + self.name + '-get_demod'] = \
-                cleandoc('''Available RAM may be insufficient. RAM needed for this calculation = '''+str(round(estimation_loops,3))+''' (+/-2) GB VS Available physical RAM = '''+str(round(RAM_physique_dispo,3))+''' GB and Total available RAM (physical and virtual) = '''+str(round(RAM_totale_dispo,3))+''' GB.''')
-        
+                cleandoc('''Available RAM may be insufficient. RAM needed for this calculation = '''+str(round(estimation,3))+''' (+/-2) GB VS Available physical RAM = '''+str(round(RAM_physique_dispo,3))+''' GB and Total available RAM (physical and virtual) = '''+str(round(RAM_totale_dispo,3))+''' GB.''')
+
         #End of RAM estimation and test
-                
+        
         return test, traceback
         
 
