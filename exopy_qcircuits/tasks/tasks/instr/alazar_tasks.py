@@ -218,27 +218,27 @@ class DemodAlazarTask(InstrumentTask):
         samplesPerSec = 500000000.0         
         
         #Initialize the RAM quantities
-        taille_data = 0
-        RAM_1=0 #RAM coming from demodulations
-        RAM_2=0 #RAM coming from traces
-        list_RAM=[] #storage of the RAM estimations from each demodulation/trace
+        size_data = 0
+        RAM_DEMOD = 0 #RAM coming from demodulations
+        RAM_TRACE = 0 #RAM coming from traces
+        RAM_list = [] #storage of the RAM estimations from each demodulation/trace
+        
+        #Quantities of reference 
+        RAM_USAGE_1_REF = 15.265243530273438 #15.265243530273438 MB = deep_getsizeof(data,set())/(1024*1024)
+                                             #where data is generated with NdemodA=1,duration=200e-9,recordsPerCapture=20000 (these are the parameters relevant to the size of data) and timestep=20ns
+                                             #NOTE : the deep_getsizeof function can be found at github.com/the-gigi/deep/blob/master/deeper.py, line 80 (thanks to the author by the way)
+        RAM_USAGE_2_REF = 0.1529388427734375 #0.1530609130859375 MB = deepgetsizeof(np.empty((20000,1)),set())/(1024*1024)
         
         #Calculate the RAM needed
         samplesPerDemod_RAM = []
         
-        #Calculate RAM_1 (in MB) coming from demodulations
+        #Calculate RAM_DEMOD (in MB) coming from demodulations
         for i in range(NdemodA + NdemodB):
             samplesPerDemod_RAM.append(int(samplesPerSec * duration[i]) )
 
-            if timestep[i]:
-                RAM_1 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
-                list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
-                #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
-
-            elif not demodCosinus:
-                RAM_1 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
-                list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
-                #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
+            if timestep[i] or not demodCosinus:
+                RAM_DEMOD += RAM_USAGE_1_REF*(duration[i]/200e-9)*(recordsPerCapture/20000)
+                RAM_list.append(RAM_USAGE_1_REF*(duration[i]/200e-9)*(recordsPerCapture/20000))                
                 
             else:
                 # Check wheter it is possible to cut each record in blocks of size equal
@@ -247,41 +247,48 @@ class DemodAlazarTask(InstrumentTask):
                 while (periodsPerBlock * samplesPerSec < freq[i] * samplesPerDemod_RAM[i]
                         and periodsPerBlock * samplesPerSec % freq[i]):
                     periodsPerBlock += 1
-                RAM_1 += 0.1529388427734375*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i])) 
-                list_RAM.append(0.1529388427734375*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i])))
-                #0.1530609130859375 MB = deepgetsizeof(np.empty((20000,1)),set())/(1024*1024)
-                #We make the assumption that the size of np.empty((a,b)) becomes linearly dependent on a and b at sufficiently high vallues of a and b
-                #Here, recordsPerCapture will not be under 1000, which guaranties this assumption
+                RAM_DEMOD += RAM_USAGE_2_REF*(recordsPerCapture/20000)*int(np.minimum(periodsPerBlock * samplesPerSec / freq[i],samplesPerDemod_RAM[i]))         
+                RAM_list.append(RAM_DEMOD)
+                #We make the assumption that the size of np.empty((a,b)) becomes linearly dependent on a and b at sufficiently high vallues
+                #of a and b. Here, recordsPerCapture will not be under 1000, which guaranties this assumption
                 
-        #Calculate RAM_2 (in MB) coming from traces
+        #Calculate RAM_TRACE (in MB) coming from traces
         for i in (np.arange(NtraceA + NtraceB) + NdemodA + NdemodB):
-            RAM_2 += 15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000)
-            list_RAM.append(15.265243530273438*(duration[i]/200e-9)*(recordsPerCapture/20000))
-            #15.265243530273438 MB = deepgetsizeof(data(NdemodA=1,duration=200e-9,recordsPerCapture=20000),set())/(1024*1024)
+            RAM_TRACE += RAM_USAGE_1_REF*(duration[i]/200e-9)*(recordsPerCapture/20000)
+            RAM_list.append(RAM_USAGE_1_REF*(duration[i]/200e-9)*(recordsPerCapture/20000))
         
-        taille_data = RAM_1 + RAM_2 #RAM used by the array data in MB
+        size_data = RAM_DEMOD + RAM_TRACE #RAM used by the array data in MB
         
         #Determine the heights of RAM peaks linked to the wanted demodulations/traces 
-        pics_RAM = []
-        for k in range(len(list_RAM)):
-            pics_RAM.append(list_RAM[k]*3+(taille_data-list_RAM[k]))
-        estimation = max(pics_RAM) #The higher peak is the one that matters to determine if the calculation is possible or not
-        estimation = (estimation/1024) 
+        RAM_peaks = []
+        for k in range(len(RAM_list)):
+            RAM_peaks.append(RAM_list[k]*3+(size_data-RAM_list[k])) 
+            #The demodulation/trace being calculated takes 3 times the RAM needed by its
+            #data and we still have to take into account the RAM taken by the other demodulation/traces that have been or will be processed.
+        estimation = max(RAM_peaks) #The higher peak is the one that matters to determine if the calculation is possible or not
+        estimation = (estimation/1024) #Conversion into GB
         
-        #Retrieval of quantities of available RAM : physical and total (physical+virtual)
+        #In the case with no timestep, we have to take into account the RAM used by the buffers
+        RAM_BUFFERS_REF = 1.0 #RAM (in GB) used by buffers with following parameters : recordsPerCapture = 1000000 ; duration = 1000ns
+                              #(it has been measured)
+        total_duration_max = np.max(np.array(startaftertrig) + np.array(duration))
+        RAM_BUFFERS = RAM_BUFFERS_REF*(recordsPerCapture/1000000)*(total_duration_max/1000e-9)
+        
+        
+        if len(timestep) != 0 and not timestep[0]: 
+            estimation = max(estimation,RAM_BUFFERS) #measurements showed that the higher quantity overshadows the other and is the one 
+                                                     #that matter for the RAM used in the end
+        
+        #Retrieval of quantities of available RAM : physical and total (physical+virtual) and conversion into GB
         RAM_physique_dispo = psutil.virtual_memory()[1]/(1024**3) 
         RAM_totale_dispo = psutil.swap_memory()[2]/(1024**3) 
         
-        #Return an error message if the estimated RAM exceeds the available physical RAM and give the user these values as well as the total available RAM (physical and virtual)
-        if (estimation+3) > RAM_physique_dispo :
+        if (estimation+2) > RAM_physique_dispo :
             test = False
             traceback[self.path + '/' + self.name + '-get_demod'] = \
-                cleandoc('''Available RAM may be insufficient. RAM needed for this calculation = '''+str(round(estimation,3))+''' (+/-2) GB VS Available physical RAM = '''+str(round(RAM_physique_dispo,3))+''' GB and Total available RAM (physical and virtual) = '''+str(round(RAM_totale_dispo,3))+''' GB.''')
-
-        #End of RAM estimation and test
+                cleandoc('''Available RAM may be insufficient. RAM needed for this calculation = '''+str(round(estimation,3))+''' (+1/-2) GB VS Available physical RAM = '''+str(round(RAM_physique_dispo,3))+''' GB and Total available RAM (physical and virtual) = '''+str(round(RAM_totale_dispo,3))+''' GB.''')
         
         return test, traceback
-        
 
     def perform(self):
         """
