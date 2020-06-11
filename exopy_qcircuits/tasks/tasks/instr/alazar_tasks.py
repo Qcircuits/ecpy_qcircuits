@@ -257,7 +257,7 @@ class DemodAlazarTask(InstrumentTask):
             RAM_TRACE += RAM_USAGE_1_REF*(duration[i]/200e-9)*(recordsPerCapture/20000)
             RAM_list.append(RAM_USAGE_1_REF*(duration[i]/200e-9)*(recordsPerCapture/20000))
         
-        size_data = RAM_DEMOD + RAM_TRACE #RAM used by the array data in MB
+        size_data = RAM_DEMOD + RAM_TRACE #RAM used by the data array in MB
         
         #Determine the heights of RAM peaks linked to the wanted demodulations/traces 
         RAM_peaks = []
