@@ -2,7 +2,7 @@
 # -----------------------------------------------------------------------------
 # Copyright 2017-2018 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
-# DiUnicodeibuted under the terms of the BSD license.
+# Distributed under the terms of the BSD license.
 #
 # The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
@@ -22,7 +22,7 @@ import os
 from operator import mul
 from functools import reduce
 
-from atom.api import (Bool, Unicode, Enum, set_default,Typed)
+from atom.api import (Bool, Str, Enum, set_default,Typed)
 
 from exopy.tasks.api import InstrumentTask, validators
 from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
@@ -40,29 +40,29 @@ def eval_with_units(task,evaluee):
 
     clckrate_command = '/%s/system/clocks/sampleclock/freq' %task.driver.device
     unitdict['ns_to_clck'] = float(task.driver.daq.get(clckrate_command, True, 0)[clckrate_command]['value'])*1e-9/8 # the HDAWG clockrate is 8 times slower than the sample rate
-    
+
     multiplier = unitdict[unit]
     value = value * multiplier
     return value
-        
+
 class PulseTransferHDAWGTask(InstrumentTask):
     """ Give a pulse sequence to HDAWG
-        
+
     """
-    PulseSeqFile = Unicode('pulseSeqFile.txt').tag(pref=True)
-    
+    PulseSeqFile = Str('pulseSeqFile.txt').tag(pref=True)
+
     modified_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
     reference_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
-    
+
 # =============================================================================
 #     def check(self, *args, **kwargs):
 #         """
 #         """
 #         test, traceback = super(PulseTransferUHFLITask, self).check(*args,
 #                                                              **kwargs)
-#         file = None      
+#         file = None
 #         try:
 #             file = open(self.PulseSeqFile,"r")
 #         except FileNotFoundError as er:
@@ -71,22 +71,22 @@ class PulseTransferHDAWGTask(InstrumentTask):
 #                 cleandoc('''File not found''')
 #         if file:
 #             file.close()
-#        
+#
 #         return test, traceback
 # =============================================================================
-           
+
     def perform(self):
         """
         """
         if not self.driver.daq:
             self.start_driver()
-            
+
         if not self.driver.saveConfig:
             path = self.format_string('{default_path}')
             measId = self.format_string('LabOne_settings_{meas_id}.xml')
             full_path = os.path.join(path,measId)
             self.driver.saveConfiguration(full_path)
-        
+
         device = self.driver.device
         exp_setting = [['/%s/awgs/0/single' % device, 0]]# mode rerun, the awg repeat the sequence]
 
@@ -105,41 +105,41 @@ class PulseTransferHDAWGTask(InstrumentTask):
         file = open(self.PulseSeqFile,"r")
         sequence = file.read()
         file.close()
-        
+
         awg_program = textwrap.dedent(sequence)
-        
+
         for l, v in self.modified_values.items():
             value = str(eval_with_units(self,v))
-            awg_program = awg_program.replace(l, value)        
-        
+            awg_program = awg_program.replace(l, value)
+
         self.driver.TransferSequence(awg_program)
 
 
         # Start the AWG in single-shot mode. CAREFUL this does not activate the outputs
         self.driver.daq.setInt('/%s/awgs/0/enable' %device, 1) # start/stop equiv
         self.driver.daq.sync()
-        
+
         time.sleep(0.5) #gives HDAWG time to send commands to various output settings (oscillators etc etc)
-        
+
         #now wait for the signal outputs to set the correct delays
         while not reduce(mul, [1-self.driver.daq.getInt('/{}/sigouts/{}/busy'.format(device,i)) for i in self.driver.channels], 1):
             time.sleep(0.5)
-            
+
         self.driver.daq.sync()
 class SetParametersHDAWGTask(InstrumentTask):
     """ Set Lock-in, AWG and Ouput Parameters of UHFLI.
-        
-    """    
+
+    """
     parameterToSet = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
-    
-    
+
+
 #    def check(self, *args, **kwargs):
 #        """
 #        """
 #        test, traceback = super(SetParametersUHFLITask, self).check(*args,
 #                                                             **kwargs)
-#        
+#
 #        for p,v in self.parameterToSet.items():
 #            if p[:3] == 'Osc':
 #                if self.format_and_eval_string(v)>600e6:
@@ -160,15 +160,15 @@ class SetParametersHDAWGTask(InstrumentTask):
 #                    test = False
 #                    traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
 #                        cleandoc('''User Register's value must be between 0 and 2^32''')
-#                        
+#
 #        return test, traceback
-   
+
     def perform(self):
         """
         """
         if not self.driver.daq:
             self.start_driver()
-            
+
         if not self.driver.saveConfig:
             path = self.format_string('{default_path}')
             measId = self.format_string('LabOne_settings_{meas_id}.xml')
@@ -178,7 +178,7 @@ class SetParametersHDAWGTask(InstrumentTask):
         device = self.driver.device
         #self.driver.daq.getInt('/%s/system/awg/channelgrouping' %device) 0 = 4x2; 1 = 2x4; 2 = 1x8
         ch_group = 2**(self.driver.daq.getInt('/%s/system/awg/channelgrouping' %device)+1) #number of channels per group
-        
+
         exp_setting=[]
 #        ['User Register', 'Oscillator', 'Waveform Amplitude','Phase shift',
 #                   'LowPass order','LowPass TC','Osc of Demod ','Trig of Demod',
@@ -226,38 +226,38 @@ class SetParametersHDAWGTask(InstrumentTask):
                 else:
                     print('Modulation mode not supported')
                     raise ValueError
-                        
+
                 exp_setting = exp_setting + [['/{}/awgs/{}/outputs/{}/modulation/mode'.format(device, (int(v[1])-1)//2, (int(v[1])-1)%2),value]]
                 wait_after_sync = True
-                
+
             else:
                 print('not an interfaced variable')
-                                
+
         self.driver.daq.set(exp_setting)
         self.driver.daq.sync()
-        
+
         if wait_after_sync: #sometimes we need to wait a bit for the AWG cores to synchronise
             time.sleep(0.5)
             while not reduce(mul, [1-self.driver.daq.getInt('/{}/sigouts/{}/busy'.format(device,i)) for i in self.driver.channels], 1):
                 time.sleep(0.5)
-                
+
         self.driver.daq.sync()
 class OutputOnOffHDAWGTask(InstrumentTask):
-    
-    channellist = Unicode().tag(pref=True)
-    onoff = Unicode().tag(pref=True)
-    
+
+    channellist = Str().tag(pref=True)
+    onoff = Str().tag(pref=True)
+
     def perform(self):
         if not self.driver.daq:
             self.start_driver()
-        
+
         if not self.driver.saveConfig:
             path = self.format_string('{default_path}')
             measId = self.format_string('LabOne_settings_{meas_id}.xml')
             full_path = os.path.join(path,measId)
             self.driver.saveConfiguration(full_path)
-        
-        device = self.driver.device        
+
+        device = self.driver.device
         channels = list(map(lambda x: int(x)-1,self.channellist.split(',')))
         setOn = 0
         if self.onoff in ['On','on','1']:
@@ -267,6 +267,6 @@ class OutputOnOffHDAWGTask(InstrumentTask):
         else:
             print('Invalid on/off string')
             raise ValueError
-    
-        for ch in channels: 
+
+        for ch in channels:
             self.driver.daq.setInt('/{}/sigouts/{}/on'.format(device,ch), setOn)

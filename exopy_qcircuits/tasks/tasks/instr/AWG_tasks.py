@@ -16,7 +16,7 @@ from __future__ import (division, unicode_literals, print_function,
 #from atom.api import set_default
 
 from exopy.tasks.api import InstrumentTask
-from atom.api import (Unicode,Enum,Typed)
+from atom.api import (Str,Enum,Typed)
 from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
 from collections import OrderedDict
 from exopy_qcircuits.instruments.drivers.visa_tools import InstrIOError
@@ -27,8 +27,8 @@ class AWGSetDCOffsetTask(InstrumentTask):
 
     """    
     
-    channel = Unicode('1').tag(pref=True)
-    voltage = Unicode('0').tag(pref=True)
+    channel = Str('1').tag(pref=True)
+    voltage = Str('0').tag(pref=True)
 
     def perform(self):
         """
@@ -45,8 +45,8 @@ class AWGSetVppTask(InstrumentTask):
 
     """    
     
-    channel = Unicode('1').tag(pref=True)
-    amplitude = Unicode('0').tag(pref=True)
+    channel = Str('1').tag(pref=True)
+    amplitude = Str('0').tag(pref=True)
 
     def perform(self):
         """

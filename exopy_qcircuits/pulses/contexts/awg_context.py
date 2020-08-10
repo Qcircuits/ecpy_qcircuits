@@ -10,7 +10,7 @@
 
 """
 import numpy as np
-from atom.api import Unicode, Float, Bool, set_default
+from atom.api import Str, Float, Bool, set_default
 
 from exopy_pulses.pulses.api import BaseContext, TIME_CONVERSION
 
@@ -23,7 +23,7 @@ class TaborAWGContext(BaseContext):
     #: Generic name used when storing the sequence on the instrument.
     #: The channel name (Ch1, Ch2, ...) will be appended to it when
     #: transferring.
-    sequence_name = Unicode().tag(pref=True, fmt=False)
+    sequence_name = Str().tag(pref=True, fmt=False)
 
     #: Sampling frequency in Hz
     sampling_frequency = Float(1e9).tag(pref=True)

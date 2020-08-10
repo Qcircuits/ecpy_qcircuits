@@ -2,9 +2,9 @@
 # -----------------------------------------------------------------------------
 # Copyright 2015-2016 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
-# DiUnicodeibuted under the terms of the BSD license.
+# Distributed under the terms of the BSD license.
 #
-# The full license is in the file LICENCE, diUnicodeibuted with this software.
+# The full license is in the file LICENCE, distributed with this software.
 # -----------------------------------------------------------------------------
 """Task perform measurements the SPDevices digitizers.
 
@@ -16,7 +16,7 @@ import numbers
 import numpy as np
 from inspect import cleandoc
 
-from atom.api import (Bool, Unicode, Enum, set_default)
+from atom.api import (Bool, Str, Enum, set_default)
 
 from exopy.tasks.api import InstrumentTask, validators
 
@@ -32,45 +32,45 @@ class DemodAlazarTask(InstrumentTask):
         Can also get raw or averaged traces of the signal.
         Custom shape for demodulation can be used.
     """
-    freq = Unicode('50').tag(pref=True)
+    freq = Str('50').tag(pref=True)
 
-    freqB = Unicode('50').tag(pref=True)
+    freqB = Str('50').tag(pref=True)
 
-    timeaftertrig = Unicode('0').tag(pref=True)
+    timeaftertrig = Str('0').tag(pref=True)
 
-    timeaftertrigB = Unicode('0').tag(pref=True)
+    timeaftertrigB = Str('0').tag(pref=True)
 
-    timestep = Unicode('0').tag(pref=True)
+    timestep = Str('0').tag(pref=True)
 
-    timestepB = Unicode('0').tag(pref=True)
+    timestepB = Str('0').tag(pref=True)
 
-    tracetimeaftertrig = Unicode('0').tag(pref=True)
+    tracetimeaftertrig = Str('0').tag(pref=True)
 
-    tracetimeaftertrigB = Unicode('0').tag(pref=True)
+    tracetimeaftertrigB = Str('0').tag(pref=True)
 
-    duration = Unicode('1000').tag(pref=True)
+    duration = Str('1000').tag(pref=True)
 
-    durationB = Unicode('0').tag(pref=True)
+    durationB = Str('0').tag(pref=True)
 
-    traceduration = Unicode('0').tag(pref=True)
+    traceduration = Str('0').tag(pref=True)
 
-    tracedurationB = Unicode('0').tag(pref=True)
+    tracedurationB = Str('0').tag(pref=True)
 
-    tracesbuffer = Unicode('20').tag(pref=True, feval=VAL_INT)
+    tracesbuffer = Str('20').tag(pref=True, feval=VAL_INT)
 
-    tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
+    tracesnumber = Str('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
 
-    Npoints = Unicode('0').tag(pref=True,feval=VAL_INT)
+    Npoints = Str('0').tag(pref=True,feval=VAL_INT)
 
     IQtracemode = Bool(False).tag(pref=True)
 
     trigrange = Enum('2.5V','5V').tag(pref=True)
 
-    triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
+    triglevel = Str('0.3').tag(pref=True, feval=VAL_REAL)
 
-    demodFormFile = Unicode('[]').tag(pref=True)
+    demodFormFile = Str('[]').tag(pref=True)
     
     powerBoolA  =Bool(False).tag(pref=True) 
 
@@ -374,29 +374,29 @@ class DemodAlazarTask(InstrumentTask):
 class VNAAlazarTask(InstrumentTask):
     """ Allows to used an Alazar card as a VNA.
     """
-    freq = Unicode('[]').tag(pref=True)
+    freq = Str('[]').tag(pref=True)
 
-    freqB = Unicode('[]').tag(pref=True)
+    freqB = Str('[]').tag(pref=True)
 
-    timeaftertrig = Unicode('0').tag(pref=True)
+    timeaftertrig = Str('0').tag(pref=True)
 
-    timeaftertrigB = Unicode('0').tag(pref=True)
+    timeaftertrigB = Str('0').tag(pref=True)
 
-    duration = Unicode('1000').tag(pref=True)
+    duration = Str('1000').tag(pref=True)
 
-    durationB = Unicode('0').tag(pref=True)
+    durationB = Str('0').tag(pref=True)
 
-    tracesbuffer = Unicode('20').tag(pref=True, feval=VAL_INT)
+    tracesbuffer = Str('20').tag(pref=True, feval=VAL_INT)
 
-    tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
+    tracesnumber = Str('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
 
     trigrange = Enum('2.5V','5V').tag(pref=True)
 
-    triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
+    triglevel = Str('0.3').tag(pref=True, feval=VAL_REAL)
 
-    demodFormFile = Unicode('[]').tag(pref=True)
+    demodFormFile = Str('[]').tag(pref=True)
 
     aux_trig = Bool(False).tag(pref=True)
 
@@ -531,25 +531,25 @@ class FFTAlazarTask(InstrumentTask):
         Custom shape for demodulation can be used.
     """
 
-    tracetimeaftertrig = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    tracetimeaftertrig = Str('0').tag(pref=True, feval=VAL_REAL)
 
-    tracetimeaftertrigB = Unicode('0').tag(pref=True, feval=VAL_REAL)
+    tracetimeaftertrigB = Str('0').tag(pref=True, feval=VAL_REAL)
 
-    traceduration = Unicode('0').tag(pref=True)
+    traceduration = Str('0').tag(pref=True)
 
-    tracedurationB = Unicode('0').tag(pref=True)
+    tracedurationB = Str('0').tag(pref=True)
 
-    tracesbuffer = Unicode('20').tag(pref=True, feval=VAL_INT)
+    tracesbuffer = Str('20').tag(pref=True, feval=VAL_INT)
 
-    tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
+    tracesnumber = Str('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
     
-    Npoints = Unicode('0').tag(pref=True,feval=VAL_INT)
+    Npoints = Str('0').tag(pref=True,feval=VAL_INT)
 
     trigrange = Enum('2.5V','5V').tag(pref=True)
 
-    triglevel = Unicode('0.3').tag(pref=True, feval=VAL_REAL)
+    triglevel = Str('0.3').tag(pref=True, feval=VAL_REAL)
     
     powerPhaseA  =Bool(False).tag(pref=True)
     

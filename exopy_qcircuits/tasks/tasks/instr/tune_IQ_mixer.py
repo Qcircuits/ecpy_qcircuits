@@ -13,7 +13,7 @@ import logging
 import numbers
 import numpy as np
 
-from atom.api import (Enum, Unicode, Value)
+from atom.api import (Enum, Str, Value)
 
 from exopy.tasks.api import (InstrumentTask, validators)
 #signal analyzer driver
@@ -38,13 +38,13 @@ class TuneIQMixerTask(InstrumentTask):
     channelQ = Enum('Ch1', 'Ch2', 'Ch3', 'Ch4').tag(pref=True)
 
     # LO frequency
-    freq = Unicode('0.0').tag(pref=True,
+    freq = Str('0.0').tag(pref=True,
                               feval=validators.SkipLoop(types=numbers.Real))
     # modulation frequency
-    det = Unicode('0.0').tag(pref=True,
+    det = Str('0.0').tag(pref=True,
                              feval=validators.SkipLoop(types=numbers.Real))
     # LO power frequency
-    power = Unicode('0.0').tag(pref=True,
+    power = Str('0.0').tag(pref=True,
                              feval=validators.SkipLoop(types=numbers.Real))
     # Desired sideband, e.g. if Lower, suppress freq and freq+det
     SB = Enum('Lower', 'Upper').tag(pref=True)
