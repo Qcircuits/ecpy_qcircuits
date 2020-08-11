@@ -12,7 +12,7 @@
 from numbers import Real
 
 import numpy as np
-from atom.api import Unicode
+from atom.api import Str
 
 from exopy_pulses.pulses.utils.validators import Feval
 
@@ -24,9 +24,9 @@ class GaussianShape(AbstractShape):
 
     """
 
-    amplitude = Unicode('1.0').tag(pref=True, feval=Feval(types=Real))
+    amplitude = Str('1.0').tag(pref=True, feval=Feval(types=Real))
 
-    width = Unicode('').tag(pref=True, feval=Feval(types=Real))
+    width = Str('').tag(pref=True, feval=Feval(types=Real))
 
     def eval_entries(self, root_vars, sequence_locals, missing, errors):
         """ Evaluate the amplitude of the pulse.
@@ -87,9 +87,9 @@ class GaussianEdgeShape(AbstractShape):
 
     """
 
-    amplitude = Unicode('1.0').tag(pref=True, feval=Feval(types=Real))
+    amplitude = Str('1.0').tag(pref=True, feval=Feval(types=Real))
 
-    edge_width = Unicode('').tag(pref=True, feval=Feval(types=Real))
+    edge_width = Str('').tag(pref=True, feval=Feval(types=Real))
 
     def eval_entries(self, root_vars, sequence_locals, missing, errors):
         """ Evaluate the amplitude of the pulse.
@@ -148,19 +148,19 @@ class GaussianEdgeShape(AbstractShape):
         out[time - time[0] >= len(time) - self._cache['edge_width']*2] = gaussian[(time-time[0]>self._cache['edge_width']*2)*(time-time[0]<=self._cache['edge_width']*4)]
 
         return self._cache['amplitude']*out
-        
-        
-        
-        
+
+
+
+
 
 class SechShape(AbstractShape):
     """ Basic sech pulse with a variable amplitude.
 
     """
 
-    amplitude = Unicode('1.0').tag(pref=True, feval=Feval(types=Real))
+    amplitude = Str('1.0').tag(pref=True, feval=Feval(types=Real))
 
-    width = Unicode('').tag(pref=True, feval=Feval(types=Real))
+    width = Str('').tag(pref=True, feval=Feval(types=Real))
 
     def eval_entries(self, root_vars, sequence_locals, missing, errors):
         """ Evaluate the amplitude of the pulse.
@@ -215,16 +215,16 @@ class SechShape(AbstractShape):
         """
         # The sqrt(pi/2) factor is so that the fft of sec(x/sigma) is sec(x*sigma)
         return self._cache['amplitude']/np.cosh((time-(time[0]+time[-1])/2.0)*np.sqrt(np.pi/2)/(self._cache['width']))
-    
+
 class GaussienDerivativeShape(AbstractShape):
     """ Basic gaussian pulse with a variable amplitude.
 
     """
 
-    amplitude = Unicode('1.0').tag(pref=True, feval=Feval(types=Real))
+    amplitude = Str('1.0').tag(pref=True, feval=Feval(types=Real))
 
-    width = Unicode('').tag(pref=True, feval=Feval(types=Real))
-    
+    width = Str('').tag(pref=True, feval=Feval(types=Real))
+
 
     def eval_entries(self, root_vars, sequence_locals, missing, errors):
         """ Evaluate the amplitude of the pulse.

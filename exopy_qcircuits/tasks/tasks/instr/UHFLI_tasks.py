@@ -2,9 +2,9 @@
 # -----------------------------------------------------------------------------
 # Copyright 2017-2018 by exopyHqcLegacy Authors, see AUTHORS for more details.
 #
-# DiUnicodeibuted under the terms of the BSD license.
+# Distributed under the terms of the BSD license.
 #
-# The full license is in the file LICENCE, diUnicodeibuted with this software.
+# The full license is in the file LICENCE, diStributed with this software.
 # -----------------------------------------------------------------------------
 """Task perform measurements for the UFHLI zurick instrument.
 
@@ -20,7 +20,7 @@ from inspect import cleandoc
 from collections import OrderedDict
 import os
 
-from atom.api import (Bool, Unicode, Enum, set_default,Typed)
+from atom.api import (Bool, Str, Enum, set_default,Typed)
 
 from exopy.tasks.api import InstrumentTask, validators
 from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
@@ -45,40 +45,40 @@ class ScopeDemodUHFLITask(InstrumentTask):
     """ Get the raw or averaged quadratures of the signal.
         Can also get raw or averaged traces of the signal.
     """
-    freq = Unicode('25').tag(pref=True)
-    
-    freq2 = Unicode('25').tag(pref=True)
+    freq = Str('25').tag(pref=True)
 
-    delay = Unicode('0').tag(pref=True)
-    
-    delay2 = Unicode('0').tag(pref=True)
+    freq2 = Str('25').tag(pref=True)
 
-    duration = Unicode('1000').tag(pref=True)
-    
-    duration2 = Unicode('0').tag(pref=True)
+    delay = Str('0').tag(pref=True)
 
-    tracesnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
+    delay2 = Str('0').tag(pref=True)
+
+    duration = Str('1000').tag(pref=True)
+
+    duration2 = Str('0').tag(pref=True)
+
+    tracesnumber = Str('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
-    
+
     demod = Bool(True).tag(pref=True)
 
-    trace = Bool(False).tag(pref=True)    
-    
+    trace = Bool(False).tag(pref=True)
+
     demod2 = Bool(True).tag(pref=True)
 
     trace2 = Bool(False).tag(pref=True)
-    
-    Npoints = Unicode('1').tag(pref=True,feval=VAL_INT)
-    
-    customDemod = Unicode('[]').tag(pref=True)
-    
+
+    Npoints = Str('1').tag(pref=True,feval=VAL_INT)
+
+    customDemod = Str('[]').tag(pref=True)
+
     samplingRate = Enum('1.8GHz','900MHz','450MHz','225MHz','113MHz',
                         '56.2MHz','28.1MHz','14MHz','7.03MHz','3.5MHz',
                         '1.75MHz','880kHz','440kHz','220kHz','110kHz',
                         '54.9kHz','27.5kHz').tag(pref=True)
-    
-    
+
+
     database_entries = set_default({'Demod': {}, 'Trace': {}})
     def format_multiple_string(self, string, factor, n):
         s = self.format_and_eval_string(string)
@@ -103,14 +103,14 @@ class ScopeDemodUHFLITask(InstrumentTask):
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                            cleandoc('''All measurements are disabled.''')
-        recordsPerCapture = self.format_and_eval_string(self.tracesnumber)		
+        recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         Npoints = self.format_and_eval_string(self.Npoints)
-    
+
         if int(recordsPerCapture/Npoints)!=recordsPerCapture/Npoints:
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                            cleandoc('''Number of traces musst be divisible by Npoints.''')
-        
+
         customDemod = self.format_and_eval_string(self.customDemod)
         samplingRate = self.samplingRate
         if samplingRate[-3]=='G':
@@ -119,7 +119,7 @@ class ScopeDemodUHFLITask(InstrumentTask):
             factor = 10**6
         else:
             factor = 10**3
-        
+
         samplingRate = float(samplingRate[:-3])*factor
         if customDemod != []:
             if len(customDemod[0]) != samplingRate*np.sum(duration):
@@ -127,7 +127,7 @@ class ScopeDemodUHFLITask(InstrumentTask):
                 traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                    cleandoc('''Acquisition's duration must be the same as demodulation fonction's duration''')
         return test, traceback
-    
+
     def perform(self):
         """
         """
@@ -141,7 +141,7 @@ class ScopeDemodUHFLITask(InstrumentTask):
 
         self.driver.set_general_setting();
 
-        recordsPerCapture = self.format_and_eval_string(self.tracesnumber)		
+        recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         Npoints = self.format_and_eval_string(self.Npoints)
         delay = self.format_and_eval_string(self.delay)*10**-9
         duration = np.array(self.format_multiple_string(self.duration,10**-9,1))
@@ -151,19 +151,19 @@ class ScopeDemodUHFLITask(InstrumentTask):
         samplingRate = self.samplingRate
         freq = self.format_and_eval_string(self.freq)*10**6
         freq2 = self.format_and_eval_string(self.freq2)*10**6
-                     
+
         if duration.shape == ():
             duration = np.array([duration])
         if duration2.shape == ():
             duration2 = np.array([duration2])
-        
+
         if samplingRate[-3]=='G':
             factor = 10**9
         elif samplingRate[-3]=='M':
             factor = 10**6
         else:
             factor = 10**3
-        
+
         samplingRate = float(samplingRate[:-3])*factor
         indexSamplingRate = int(round(np.log(1.8*10**9/samplingRate)/np.log(2)))
         #give experimental setting
@@ -173,7 +173,7 @@ class ScopeDemodUHFLITask(InstrumentTask):
             channel = 2
         elif 0 in duration2:
             channel=1
-        else : 
+        else :
             channel = 3
         exp_setting = [['/%s/scopes/0/length'          % device, length+10],# number of points
                         ['/%s/scopes/0/channel'         % device, channel],# 1-> channel 0,2-> channel 1, 3-> channel 1 and 0
@@ -189,14 +189,14 @@ class ScopeDemodUHFLITask(InstrumentTask):
                         ['/%s/scopes/0/segments/count'  % device, 1]]# nb segment
         self.driver.daq.set(exp_setting)
         self.driver.daq.sync()
-        
-        
-        
+
+
+
         if len(customDemod)== 0:
             demodCosinus = 1;
         else:
             demodCosinus = 0;
-            
+
         scopeModule = self.driver.daq.scopeModule()
         scopeModule.set('scopeModule/mode', 1)# averager weight by default equal to 10
         scopeModule.set('scopeModule/historylength', 1)# memory
@@ -213,38 +213,38 @@ class ScopeDemodUHFLITask(InstrumentTask):
         scopeModule.subscribe(wave_nodepath)
         self.driver.daq.sync()
         answerDemod, answerTrace = self.driver.get_scope_demod(samplingRate, [duration,duration2], [delay, delay2], recordsPerCapture,
-                                                               [freq, freq2], self.average,[self.demod, self.demod2], 
+                                                               [freq, freq2], self.average,[self.demod, self.demod2],
                                                                [self.trace, self.trace2], Npoints,customDemod,demodCosinus,scopeModule)
 
         self.write_in_database('Demod', answerDemod)
         self.write_in_database('Trace', answerTrace)
-        
-        
+
+
 class DemodUHFLITask(InstrumentTask):
     """ Get the demodulated and integrated quadratures of the signal.
-        
+
     """
 
     input1Bool = Bool(True).tag(pref=True)
-    
+
     input2Bool = Bool(False).tag(pref=True)
-    
+
     input1demod= Enum('1','2','3','4','5','6','7','8').tag(pref=True)
-    
+
     input2demod= Enum('1','2','3','4','5','6','7','8').tag(pref=True)
-    
+
     AWGcontrol = Bool(False).tag(pref=True)
 
-    pointsnumber = Unicode('1000').tag(pref=True, feval=VAL_INT)
+    pointsnumber = Str('1000').tag(pref=True, feval=VAL_INT)
 
     average = Bool(True).tag(pref=True)
-    
+
     powerBool = Bool(False).tag(pref=True)
-    
-    Npoints = Unicode('0').tag(pref=True,feval=VAL_INT)
-        
+
+    Npoints = Str('0').tag(pref=True,feval=VAL_INT)
+
     database_entries = set_default({'Demod': {}})
-    
+
     def format_multiple_string(self, string, factor, n):
         s = self.format_and_eval_string(string)
         if isinstance(s, list) or isinstance(s, tuple) or isinstance(s, np.ndarray):
@@ -267,10 +267,10 @@ class DemodUHFLITask(InstrumentTask):
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                 cleandoc('''All measurements are disabled.''')
-               
-    
+
+
         return test, traceback
-    
+
     def perform(self):
         """
         """
@@ -284,14 +284,14 @@ class DemodUHFLITask(InstrumentTask):
             self.driver.saveConfiguration(full_path)
 
         Npoints = self.format_and_eval_string(self.Npoints)
-        recordsPerCapture = self.format_and_eval_string(self.pointsnumber)		
+        recordsPerCapture = self.format_and_eval_string(self.pointsnumber)
         demod1=self.format_and_eval_string(self.input1demod)-1
         demod2=self.format_and_eval_string(self.input2demod)-1
-        
+
         device = self.driver.device
 
         channel = []
-        
+
         if self.AWGcontrol:
             self.driver.daq.setInt('/%s/awgs/0/enable' %device, 0)
         self.driver.daq.unsubscribe('/%s/*' % device)
@@ -305,27 +305,27 @@ class DemodUHFLITask(InstrumentTask):
 
         answerDemod = self.driver.get_demodLI(recordsPerCapture,self.average,Npoints,channel,[demod1,demod2],self.powerBool,self.AWGcontrol)
         self.write_in_database('Demod', answerDemod)
-        
+
 class PulseTransferUHFLITask(InstrumentTask):
     """ Give a pulse sequence to UHFLI's AWG module
-        
+
     """
-    PulseSeqFile = Unicode('pulseSeqFile.txt').tag(pref=True)
-    
+    PulseSeqFile = Str('pulseSeqFile.txt').tag(pref=True)
+
     modified_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
     mod1 = Bool(False).tag(pref=True)
 
     mod2 = Bool(False).tag(pref=True)
-    
+
     autoStart = Bool(True).tag(pref=True)
-     
+
     def check(self, *args, **kwargs):
         """
         """
         test, traceback = super(PulseTransferUHFLITask, self).check(*args,
                                                              **kwargs)
-        file = None      
+        file = None
         try:
             file = open(self.PulseSeqFile,"r")
         except FileNotFoundError:
@@ -334,9 +334,9 @@ class PulseTransferUHFLITask(InstrumentTask):
                 cleandoc('''File not found''')
         if file:
             file.close()
-       
+
         return test, traceback
-    
+
     def perform(self):
         """
         """
@@ -347,17 +347,17 @@ class PulseTransferUHFLITask(InstrumentTask):
             measId = self.format_string('LabOne_settings_{meas_id}.xml')
             full_path = os.path.join(path,measId)
             self.driver.saveConfiguration(full_path)
-        
+
         device = self.driver.device
         exp_setting = [['/%s/awgs/0/single'               % device, 0]# mode rerun, the awg repeat the sequence
                         ]
         if self.mod1:
             exp_setting.append([ '/%s/awgs/0/outputs/0/mode'  %device, 2])
-        else : 
+        else :
             exp_setting.append([ '/%s/awgs/0/outputs/0/mode'  %device, 1])
         if self.mod2:
             exp_setting.append([ '/%s/awgs/0/outputs/1/mode'  %device, 2])
-        else : 
+        else :
             exp_setting.append([ '/%s/awgs/0/outputs/1/mode'  %device, 1])
 
         self.driver.daq.set(exp_setting)
@@ -374,13 +374,13 @@ class PulseTransferUHFLITask(InstrumentTask):
         file = open(self.PulseSeqFile,"r")
         sequence = file.read()
         file.close()
-        
+
         awg_program = textwrap.dedent(sequence)
-        
+
         for l, v in self.modified_values.items():
             v=str(eval_with_units(self,v))
             awg_program = awg_program.replace(l, v)
-        
+
         self.driver.TransfertSequence(awg_program)
 
         # Start the AWG in single-shot mode if autoStart is True
@@ -389,18 +389,18 @@ class PulseTransferUHFLITask(InstrumentTask):
 
 class SetParametersUHFLITask(InstrumentTask):
     """ Set Lock-in, AWG and Ouput Parameters of UHFLI.
-        
-    """    
+
+    """
     parameterToSet = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
-    
-    
+
+
     def check(self, *args, **kwargs):
         """
         """
         test, traceback = super(SetParametersUHFLITask, self).check(*args,
                                                              **kwargs)
-        
+
 #        for p,v in self.parameterToSet.items():
 #            if p[:3] == 'Osc':
 #                if self.format_and_eval_string(v)<0:
@@ -417,9 +417,9 @@ class SetParametersUHFLITask(InstrumentTask):
 #                    test = False
 #                    traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
 #                        cleandoc('''User Register's value musst be between 0 and 2^32''')
-                        
+
         return test, traceback
-    
+
     def perform(self):
         """
         """
@@ -432,9 +432,9 @@ class SetParametersUHFLITask(InstrumentTask):
             self.driver.saveConfiguration(full_path)
 
         device = self.driver.device
-        
+
         exp_setting=[]
-        
+
         for p, v in self.parameterToSet.items():
             if v[0][:3] == 'AWG':
                 channel =self.format_and_eval_string(v[1])-1
@@ -477,30 +477,30 @@ class SetParametersUHFLITask(InstrumentTask):
                 channel = self.format_and_eval_string(v[1])-1
                 value = eval_with_units(self,v[-2:])
                 exp_setting=exp_setting+ [['/%s/awgs/0/userregs/%d' % (device, channel), value]]
-                
+
         self.driver.daq.set(exp_setting)
         self.driver.daq.sync()
-        
+
 class CloseAWGUHFLITask(InstrumentTask):
     """ Close AWG module of UHFLI.
-        
-    """        
-    
+
+    """
+
     def check(self, *args, **kwargs):
         """
         """
         test, traceback = super(CloseAWGUHFLITask, self).check(*args,
                                                              **kwargs)
-        
-                        
+
+
         return test, traceback
-    
+
     def perform(self):
         """
         """
         if not self.driver.daq:
             self.start_driver()
-        
+
         if self.driver.awgModule:
             if self.driver.daq:
                 self.driver.daq.setInt('/%s/awgs/0/enable' %self.driver.device, 0)
@@ -512,36 +512,36 @@ class CloseAWGUHFLITask(InstrumentTask):
 class DAQDemodUHFLITask(InstrumentTask):
     """ Get a trace of the demodulated sigal.
         Can average the trace. Number of channel unlimited.
-    """    
-    delay = Unicode('0').tag(pref=True)
-    
-    numberRow = Unicode('1').tag(pref=True)
-    
-    numberCol = Unicode('100').tag(pref=True)
+    """
+    delay = Str('0').tag(pref=True)
 
-    repetition = Unicode('1').tag(pref=True, feval=VAL_INT)
+    numberRow = Str('1').tag(pref=True)
 
-    numberGrid = Unicode('1').tag(pref=True)
+    numberCol = Str('100').tag(pref=True)
+
+    repetition = Str('1').tag(pref=True, feval=VAL_INT)
+
+    numberGrid = Str('1').tag(pref=True)
 
     average = Bool(True).tag(pref=True)
-            
-    
+
+
     AWGControl = Bool(False).tag(pref=True)
-    
+
     RowRepetition = Bool(False).tag(pref=True)
-    
+
     trigger = Enum('AWG Trigger 1','AWG Trigger 2','AWG Trigger 3','AWG Trigger 4').tag(pref=True)
-    
+
     triggerChain = Enum ('Demodulator 1','Demodulator 2','Demodulator 3','Demodulator 4',
                         'Demodulator 5','Demodulator 6','Demodulator 7','Demodulator 8').tag(pref=True)
-     
+
     signalDict = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
-    
+
 
     database_entries = set_default({'Grid': {}})
-    
-    
+
+
     def check(self, *args, **kwargs):
         """
         """
@@ -563,9 +563,9 @@ class DAQDemodUHFLITask(InstrumentTask):
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_grid'] = \
                            cleandoc('''At least select one path for a signal to acquire''')
-        
+
         return test, traceback
-    
+
     def perform(self):
         """
         """
@@ -579,14 +579,14 @@ class DAQDemodUHFLITask(InstrumentTask):
 
         self.driver.set_general_setting();
 
-        delay = self.format_and_eval_string(self.delay)*10**-9	
+        delay = self.format_and_eval_string(self.delay)*10**-9
         numberGrid = self.format_and_eval_string(self.numberGrid)
         numberRow = self.format_and_eval_string(self.numberRow)
         numberCol = self.format_and_eval_string(self.numberCol)
         repetition = self.format_and_eval_string(self.repetition)
-        
+
         device = self.driver.device
-        
+
         signal_paths=[]
         signalID=[]
         if self.average:
@@ -599,7 +599,7 @@ class DAQDemodUHFLITask(InstrumentTask):
             signalID.append(s[0][-1]+s[1])
         self.driver.daq.sync()
         #give experimental setting
-        
+
         exp_setting = [['dataAcquisitionModule/device' , device],
                         ['dataAcquisitionModule/grid/mode', 4],# grid mode = exact
                         ['dataAcquisitionModule/grid/cols', numberCol],
@@ -631,6 +631,3 @@ class DAQDemodUHFLITask(InstrumentTask):
                                                signalID,signal_paths)
 
         self.write_in_database('Grid', answerDAM)
-        
-        
-        

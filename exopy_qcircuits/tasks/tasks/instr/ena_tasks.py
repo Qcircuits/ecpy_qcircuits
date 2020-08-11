@@ -15,7 +15,7 @@ import numbers
 from inspect import cleandoc
 
 import numpy as np
-from atom.api import (Unicode, Int, Bool, Enum, set_default,
+from atom.api import (Str, Int, Bool, Enum, set_default,
                       Value, List)
 
 from exopy.tasks.api import InstrumentTask, TaskInterface, validators
@@ -166,11 +166,11 @@ class ENASweepTask(SingleChannelPNATask):
     """
     channel = Int(1).tag(pref=True)
 
-    start = Unicode().tag(pref=True, feval=FEVAL)
+    start = Str().tag(pref=True, feval=FEVAL)
 
-    stop = Unicode().tag(pref=True, feval=FEVAL)
+    stop = Str().tag(pref=True, feval=FEVAL)
 
-    points = Unicode().tag(pref=True, feval=FEVAL)
+    points = Str().tag(pref=True, feval=FEVAL)
     
     sweep_type = Enum('','Frequency', 'Power').tag(pref=True)
 
@@ -314,8 +314,8 @@ class ENAGetTracesTask(InstrumentTask):
 
     """
 
-    #tracelist = Unicode('1,1').tag(pref=True, feval=FEVAL)
-    tracelist = Unicode('1,1').tag(pref=True)
+    #tracelist = Str('1,1').tag(pref=True, feval=FEVAL)
+    tracelist = Str('1,1').tag(pref=True)
     already_measured = Bool(False).tag(pref=True)
 
     database_entries = set_default({'sweep_data': {}})
@@ -391,7 +391,7 @@ class GetMarkerPosition(InstrumentTask):
 
     """
 
-    tracelist = Unicode('1,1').tag(pref=True, feval=FEVAL)
+    tracelist = Str('1,1').tag(pref=True, feval=FEVAL)
 
     has_view = True
 

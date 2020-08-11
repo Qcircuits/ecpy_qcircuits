@@ -15,7 +15,7 @@ from pprint import pformat
 from collections import OrderedDict
 import numpy as np
 import time
-from atom.api import Value, Unicode, Float, Typed, Bool
+from atom.api import Value, Str, Float, Typed, Bool
 from exopy.tasks.api import (InstrumentTask)
 from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
 
@@ -25,7 +25,7 @@ class TransferPulseLoopTask(InstrumentTask):
 
     """
     #: Sequence path for the case of sequence simply referenced.
-    sequence_path = Unicode().tag(pref=True)
+    sequence_path = Str().tag(pref=True)
 
     #: Time stamp of the last modification of the sequence file.
     sequence_timestamp = Float().tag(pref=True)
@@ -40,19 +40,19 @@ class TransferPulseLoopTask(InstrumentTask):
     #: Loop variables: channels on which the loop will be done, loop parameters
     #: names, start value, stop value and number of points per loop
 
-    loop_name = Unicode('pulse_rabi_length').tag(pref=True)
+    loop_name = Str('pulse_rabi_length').tag(pref=True)
 
-    loop_start = Unicode('0').tag(pref=True)
+    loop_start = Str('0').tag(pref=True)
 
-    loop_stop = Unicode('1').tag(pref=True)
+    loop_stop = Str('1').tag(pref=True)
 
-    loop_points = Unicode('2').tag(pref=True)
+    loop_points = Str('2').tag(pref=True)
 
     #: internal or external trigger
     internal_trigger = Bool(False).tag(pref=True)
 
     #: Internal trigger period in mus
-    trigger_period = Unicode('20').tag(pref=True)
+    trigger_period = Str('20').tag(pref=True)
 
     def check(self, *args, **kwargs):
         """Check that the sequence can be compiled.

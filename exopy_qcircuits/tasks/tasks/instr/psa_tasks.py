@@ -13,7 +13,7 @@ from __future__ import (division, unicode_literals, print_function,
                         absolute_import)
 
 import numpy as np
-from atom.api import set_default, Unicode
+from atom.api import set_default, Str
 
 from exopy.tasks.api import InstrumentTask
 
@@ -43,8 +43,8 @@ class PSAGetFrequencyPointTask(InstrumentTask):
     """ Get the power of a single frequency point extracted from the spectrum
 
     """    
-    frequency = Unicode('1').tag(pref=True)
-    power_level = Unicode('0').tag(pref=True)
+    frequency = Str('1').tag(pref=True)
+    power_level = Str('0').tag(pref=True)
     
     database_entries = set_default({'power': {}})
     
