@@ -16,9 +16,10 @@ This module defines drivers for LabBrick using DLL Library.
 To read the Dll of the LabBrick correctly, Visual C++ Studio 2013 is needed.
 
 """
-from ..driver_tools import (InstrIOError, secure_communication,
-                            instrument_property)
-from ..dll_tools import DllLibrary, DllInstrument
+from exopy_hqc_legacy.instruments.drivers.driver_tools import (InstrIOError,
+                                                               secure_communication,
+                                                               instrument_property)
+from exopy_hqc_legacy.instruments.drivers.dll_tools import DllLibrary, DllInstrument
 from inspect import cleandoc
 import ctypes
 

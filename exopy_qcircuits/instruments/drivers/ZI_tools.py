@@ -17,7 +17,7 @@ import zhinst.utils
 import sys, os
 
 
-from .driver_tools import BaseInstrument, InstrIOError
+from exopy_hqc_legacy.instruments.drivers.driver_tools import BaseInstrument, InstrIOError
 
 
 class ZIInstrument(BaseInstrument):

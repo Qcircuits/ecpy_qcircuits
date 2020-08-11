@@ -22,9 +22,10 @@ except ImportError:
     single = 1
     double = 3
 
-from ..driver_tools import (InstrIOError, secure_communication,
-                            instrument_property)
-from ..visa_tools import VisaInstrument
+from exopy_hqc_legacy.instruments.drivers.driver_tools import (InstrIOError,
+                                                               secure_communication,
+                                                               instrument_property)
+from exopy_hqc_legacy.instruments.drivers.visa_tools import VisaInstrument
 
 
 FORMATTING_DICT = {'PHAS': lambda x: np.angle(x, deg=True),
@@ -171,4 +172,4 @@ class RohdeAndSchwarzPSA(VisaInstrument):
                     'SENSe:LIST:POW? {},{},0,OFF,NORM,{},{},500us,0;*OPC'.
                                  format(freq,reflevel,rbw,vbw))))
         
-        return 10*np.log10(np.average(10**(np.array(values)/10)))       
+        return 10*np.log10(np.average(10**(np.array(values)/10)))

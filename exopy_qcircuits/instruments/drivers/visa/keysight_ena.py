@@ -21,9 +21,12 @@ except ImportError:
     single = 1
     double = 3
 
-from ..driver_tools import (BaseInstrument, InstrIOError, InstrError,
-                            secure_communication, instrument_property)
-from ..visa_tools import VisaInstrument
+from exopy_hqc_legacy.instruments.drivers.driver_tools import (BaseInstrument,
+                                                               InstrIOError,
+                                                               InstrError,
+                                                               secure_communication,
+                                                               instrument_property)
+from exopy_hqc_legacy.instruments.drivers.visa_tools import VisaInstrument
 
 
 FORMATTING_DICT = {'PHAS': lambda x: np.angle(x, deg=True),

@@ -30,7 +30,7 @@ import time
 import glob
 import re
 
-from ..dll_tools import DllInstrument
+from exopy_hqc_legacy.instruments.drivers.dll_tools import DllInstrument
 from . import atsapi as ats
 
 

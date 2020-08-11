@@ -30,7 +30,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from ..dll_tools import DllInstrument
+from exopy_hqc_legacy.instruments.drivers.dll_tools import DllInstrument
 
 try:
     from . import atsapi as ats
