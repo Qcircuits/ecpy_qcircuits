@@ -16,9 +16,11 @@
 """
 from threading import Lock
 from contextlib import contextmanager
-from ..driver_tools import (BaseInstrument, InstrIOError, secure_communication,
-                            instrument_property)
-from ..visa_tools import VisaInstrument
+from exopy_hqc_legacy.instruments.drivers.driver_tools import (BaseInstrument,
+                                                               InstrIOError,
+                                                               secure_communication,
+                                                               instrument_property)
+from exopy_hqc_legacy.instruments.drivers.visa_tools import VisaInstrument
 from visa import VisaTypeError
 from textwrap import fill
 from inspect import cleandoc
