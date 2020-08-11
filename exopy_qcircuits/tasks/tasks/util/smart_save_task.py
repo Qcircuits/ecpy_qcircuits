@@ -22,7 +22,7 @@ from collections import OrderedDict
 
 import numpy as np
 import h5py
-from atom.api import Unicode, Enum, Value, Bool, Dict, Int, Typed, List, set_default
+from atom.api import Str, Enum, Value, Bool, Dict, Int, Typed, List, set_default
 
 from exopy.tasks.api import SimpleTask, RootTask, validators
 from exopy.tasks.tasks.logic.loop_task import LoopTask
@@ -40,16 +40,16 @@ class SmartSaveTask(SimpleTask):
 
     """
     #: Folder in which to save the data.
-    folder = Unicode('{default_path}').tag(pref=True, fmt=True)
+    folder = Str('{default_path}').tag(pref=True, fmt=True)
 
     #: Name of the file in which to write the data.
-    filename = Unicode().tag(pref=True, fmt=True)
+    filename = Str().tag(pref=True, fmt=True)
 
     #: Currently opened file object. (File mode)
     file_object = Value()
 
     #: Header to write at the top of the file.
-    header = Unicode().tag(pref=True, fmt=True)
+    header = Str().tag(pref=True, fmt=True)
 
     #: Values to save as an ordered dictionary.
     saved_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
@@ -157,7 +157,7 @@ class SmartSaveTask(SimpleTask):
         """Check that all the parameters are correct.
 
         """
-        self.detect_loops()
+        self.detect_loops(update_names=False)
 
         err_path = self.get_error_path()
         test, traceback = super(SmartSaveTask, self).check(*args, **kwargs)
@@ -229,7 +229,7 @@ class SmartSaveTask(SimpleTask):
 
         return test, traceback
 
-    def detect_loops(self):
+    def detect_loops(self, update_names=True):
         n = self.parent
         tmp_names = []
         tmp_paths = OrderedDict()
@@ -242,7 +242,7 @@ class SmartSaveTask(SimpleTask):
                 tmp_paths[n.name] = n.path
             n = n.parent
         # Only refresh the names if the number of nested loops has changed
-        if len(tmp_names) != len(self.saved_parameters):
+        if update_names and len(tmp_names) != len(self.saved_parameters):
             self.saved_parameters = OrderedDict(tmp_names)
         self._loop_paths = OrderedDict(tmp_paths)
 

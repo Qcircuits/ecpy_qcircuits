@@ -139,7 +139,7 @@ enamldef SmartSaveView(BaseTaskView):
         DictEditor(SavedValueView): params_ed:
             params_ed.mapping := task.saved_parameters
             params_ed.mapping :: print("Added parameter", change)
-            params_ed.operations = ()
+            params_ed.operations = ('add', 'move', 'remove')
             params_ed.attributes = {'task': task}
 
     GroupBox: ed_box:
