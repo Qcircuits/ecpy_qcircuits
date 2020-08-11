@@ -26,9 +26,18 @@ from inspect import cleandoc
 import numpy as np
 import math
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 from ..dll_tools import DllInstrument
-from . import atsapi as ats
+
+try:
+    from . import atsapi as ats
+except FileNotFoundError:
+    logger.info("Couldn't find the Alazar DLL, please install the driver "
+                "if you want to use it.")
+
 
 
 class DMABuffer:
