@@ -34,7 +34,7 @@ from ..dll_tools import DllInstrument
 
 try:
     from . import atsapi as ats
-except FileNotFoundError:
+except (FileNotFoundError, OSError):
     logger.info("Couldn't find the Alazar DLL, please install the driver "
                 "if you want to use it.")
 
