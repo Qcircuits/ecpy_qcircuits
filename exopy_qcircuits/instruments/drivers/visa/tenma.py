@@ -96,7 +96,8 @@ class Tenma(VisaInstrument):
 
         """
         self.write('ISET1?')
-        value = self.read_bytes(6)
+        value = self.read_bytes(5)
+        self._driver.flush(constants.VI_IO_IN_BUF_DISCARD)
         if value:
             return float(value)
         else:
@@ -112,7 +113,8 @@ class Tenma(VisaInstrument):
         self.write("ISET1:{}".format(set_point))
         time.sleep(0.1)
         self.write('ISET1?')
-        value = self.read_bytes(6)
+        value = self.read_bytes(5)
+        self._driver.flush(constants.VI_IO_IN_BUF_DISCARD)
         if abs(float(value) - set_point) > 10**-3:
             raise InstrIOError('Instrument did not set correctly the current')
 
