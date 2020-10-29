@@ -67,6 +67,12 @@ enamldef QcircuitsManifest(PluginManifest):
                         connections = {'VisaGPIB': {'resource_class': 'INSTR'},
                                        'VisaTCPIP': {'resource_class': 'INSTR'}
                                        }
+                Drivers:
+                    manufacturer = 'Tenma'
+                    Driver:
+                        driver = 'tenma:Tenma'
+                        model = '72-2535'
+                        connections = {'VisaRS232': {'resource_class': 'INSTR'}}
 
             Drivers:
                 path = 'dll'
@@ -122,6 +128,18 @@ enamldef QcircuitsManifest(PluginManifest):
     Extension:
         id = 'exopy_qcircuits.tasks'
         point = 'exopy.tasks.declarations'
+        Tasks:
+            group = 'instr'
+            Task:
+                task = 'exopy_hqc_legacy.SetDCVoltageTask'
+                instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+            Task:
+                task = 'exopy_hqc_legacy.SetDCCurrentTask'
+                instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+            Task:
+                task = 'exopy_hqc_legacy.SetDCOutputTask'
+                instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+
         Tasks:
             path = 'exopy_qcircuits.tasks.tasks'
             Tasks:
