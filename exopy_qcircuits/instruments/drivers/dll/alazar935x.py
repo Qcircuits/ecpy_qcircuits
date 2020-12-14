@@ -685,6 +685,7 @@ class Alazar935x(DllInstrument):
         board.abortAsyncRead()
 
         if aux_trig:
+            #time.sleep(0.5)
             board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
             time.sleep(0.1)
             board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)

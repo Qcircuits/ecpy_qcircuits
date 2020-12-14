@@ -18,14 +18,21 @@ import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 import scipy.odr as odr
 import numbers
+import scipy.optimize as opt
 
-from atom.api import (Unicode, set_default, Bool, Float)
+from atom.api import (Unicode, set_default, Bool, Float, Str)
 from exopy.tasks.api import SimpleTask, validators, TaskInterface, InterfaceableTaskMixin
 from exopy.tasks.api import validators
+
+from inspect import cleandoc
 
 
 ARR_VAL = validators.Feval(types=np.ndarray)
 VAL_REAL = validators.Feval(types=numbers.Real)
+
+DEFAULT_FORMULA = \
+'''def feedback_function(x):
+    return np.sqrt(abs(x**2-157.46112542**2)/1796.56077597**2)'''
 
 class FluxoniumFluxMapArrayTask(SimpleTask):
     """
@@ -203,9 +210,14 @@ class FitRamseyTask(SimpleTask):
         """ Fit a post-selected Ramsey sequence and return detuning from drive frequency
         """
         
+        
         data = self.format_and_eval_string(self.target_data)
         t_ramsey = np.unique(np.array(data[self.time_key]))
         RO = np.swapaxes(1000*(np.array(data[self.I_key])+1j*np.array(data[self.Q_key])).reshape(len(t_ramsey),-1,2),-1,-2)
+        
+
+        '''
+        ### code for RO with 3 blobs
         
         coordinates = np.stack((np.real(RO),np.imag(RO)),axis=-1)
         
@@ -263,25 +275,191 @@ class FitRamseyTask(SimpleTask):
         ampl_0 = np.sign(data_y[1]-data_y[0])*(np.amax(data_y)-np.amin(data_y))/2
         #guess the frequency using fft
         freq_0 = np.fft.fftfreq(len(data_y))[np.argmax(abs(np.fft.fft(data_y)))]/(data_x[1]-data_x[0])
+        
+        
+        #phase should not be necessary but there is some incomprehension about the fluxonium drives
         # guess the phase, could be off by the pi/2 complement
         phi_0 = np.arcsin(data_y[0]/ampl_0)/(2*np.pi)-freq_0*data_x[0]
+        #correct guess based on evolution of first two points
+        if (data_y[1]-data_y[0])<0:
+            p0 = [freq_0,ampl_0,0,np.pi-phi_0]
+        else:
+            p0 = [freq_0,ampl_0,0,phi_0]
         
-        p0 = [freq_0,ampl_0,0,phi_0]
+        # to make fit robust to single outliers we fit once
+        # then remove the point furthest away from the fit
+        # and fit again using the first fit as a guess
+        popt_init = self.fit_and_show(data_x,data_y,self.Ramsey,p0,
+                                      show_plot=False,
+                                      ret_error=True)[1]
         
-        popt,error = self.fit_and_show(data_x,data_y,self.Ramsey,p0,
-                                       show_plot=self.show_plots,
-                                       ret_error=True)[1:]
-
+        dists = abs((self.Ramsey(popt_init,data_x)-data_y)**2)
+        furthest_index = np.argmax(dists)
+        data_y_nooutlier = np.delete(data_y,furthest_index)
+        data_x_nooutlier = np.delete(data_x,furthest_index)
+        
+        popt_final,error = self.fit_and_show(data_x_nooutlier,data_y_nooutlier,
+                                      self.Ramsey,popt_init,
+                                      show_plot=self.show_plots,
+                                      ret_error=True)[1:]
+        
         if (error[0] > 1e-4) or (error[1:]> 1e-1).any():
             log = logging.getLogger(__name__)
             msg = ('Ramsey fit has abnormally high fit error.')
             log.warning(msg)
             raise ValueError(msg)
             
-        measured_detuning = popt[0]*1000 # convert to MHz
+        measured_detuning = popt_final[0]*1000 # convert to MHz
         print('Ramsey detuning is: {}'.format(measured_detuning))
         self.write_in_database('detuning', measured_detuning)
-
+        '''
+        
+        ### code for RO with 4 blobs
+        RO = self.IQ_rot(RO)[0]
+        
+        xmin = np.amin(np.real(RO))
+        xmax = np.amax(np.real(RO))
+        ymin = np.amin(np.imag(RO))
+        ymax = np.amax(np.imag(RO))
+        xbins, xstep = np.linspace(xmin,xmax,101,retstep=True)
+        ybins, ystep = np.linspace(ymin,ymax,101,retstep=True)
+        xcentres = xbins[1:]-xstep/2
+        ycentres = ybins[1:]-ystep/2
+        
+        coordinates = np.stack((RO[0,0].real,RO[0,0].imag),axis=-1)
+        hist_ref = np.histogramdd(coordinates,bins=(xbins,ybins),density=True)
+        
+        tot_point_num = np.sum(np.nonzero(hist_ref[0]))
+        weight_per_point = len(xcentres)*len(ycentres)/tot_point_num
+        threshholded_hist_indices = np.argwhere(hist_ref[0]*xstep*ystep*weight_per_point>5/tot_point_num)
+        
+        RO_indices_r = ((coordinates[:,0]-xmin)//xstep).astype(int)
+        RO_indices_r[RO_indices_r==100] = 99
+        RO_indices_i = ((coordinates[:,1]-ymin)//ystep).astype(int)
+        RO_indices_i[RO_indices_i==100] = 99
+        RO_indices = np.stack((RO_indices_r,RO_indices_i),axis=-1).reshape(-1,2)
+        
+        valid_real = np.logical_and(RO_indices_r>=np.amin(threshholded_hist_indices[:,0]),RO_indices_r<=np.amax(threshholded_hist_indices[:,0]))
+        valid_imag = np.logical_and(RO_indices_i>=np.amin(threshholded_hist_indices[:,1]),RO_indices_i<=np.amax(threshholded_hist_indices[:,1]))
+        valid_indexes = np.logical_and(valid_real,valid_imag)
+        
+        ind = np.lexsort((RO_indices_i.flatten(),RO_indices_r.flatten()))
+        sorted_RO_indices = RO_indices[ind]
+        sorted_valid_indices = valid_indexes.flatten()[ind]
+        
+        current_threshed_index = 0
+        flag = False
+        helper_arr = np.zeros_like(sorted_RO_indices[:,0])
+        
+        for j,index in enumerate(sorted_RO_indices):
+            if sorted_valid_indices[j]:
+                if not flag:
+                    if tuple(index) == tuple(threshholded_hist_indices[current_threshed_index]):
+                        flag = True
+                        helper_arr[j] = 1
+                    else:
+                        helper_arr[j] = 0
+                else:
+                    if tuple(index) == tuple(threshholded_hist_indices[current_threshed_index]):
+                        helper_arr[j] = 1
+                    else:
+                        current_threshed_index += 1
+                        if current_threshed_index >= len(threshholded_hist_indices):
+                            break
+                        if tuple(index) == tuple(threshholded_hist_indices[current_threshed_index]):
+                            helper_arr[j] = 1
+                        else:
+                            flag = False
+                            helper_arr[j] = 0
+                        
+            else:
+                helper_arr[j] = 0 
+        
+        helper_arr_orig_order = helper_arr[np.argsort(ind)]
+        
+        threshed_RO = RO[0,0].flatten()[helper_arr_orig_order.astype(bool)]
+        threshed_coords = np.stack((np.real(threshed_RO),np.imag(threshed_RO)),axis=-1)
+        threshed_hist = np.histogramdd(threshed_coords,bins=(xbins,ybins),density=True)[0]
+        
+        clusters_fit = GaussianMixture(n_components=4,covariance_type='tied').fit(threshed_coords)
+        centres = clusters_fit.means_[:,0]+1j*clusters_fit.means_[:,1]
+        
+        def circ_res(p):
+            x0, y0, r = p
+            return np.sum(abs(abs(centres-(x0+1j*y0))-r)**2)
+        
+        opt_circ_p = opt.minimize(circ_res,[np.real(centres[0])/2,np.imag(centres[0])/2,abs(centres[0])]).x
+        circ_centre = opt_circ_p[0]+1j*opt_circ_p[1]
+        
+        angles = np.unwrap(np.angle(centres-circ_centre))
+        indexes = np.argsort(angles)
+        ground_index = indexes[-1]
+        
+        variance = np.mean(np.diag(clusters_fit.covariances_))
+        z_state = centres[ground_index]
+        r_select = 3*np.sqrt(variance) # 99.7% of data
+        
+        xx = np.linspace(0,1,101)*np.pi*2
+        circ_base = np.cos(xx)+1j*np.sin(xx)
+        res_circ = circ_base*opt_circ_p[-1]+circ_centre
+        circ_select = r_select*circ_base+z_state
+        
+        if self.show_plots:
+            fig, ax = plt.subplots(1,2)
+            ax[0].pcolormesh(xcentres,ycentres,np.log10(threshed_hist).T)
+            ax[1].pcolormesh(xcentres,ycentres,np.log10(hist_ref[0]).T)
+            ax[1].plot(np.real(circ_select),np.imag(circ_select),'r')
+            for axis in ax:
+                axis.scatter(clusters_fit.means_[:,0],clusters_fit.means_[:,1],c='orange')
+                axis.plot(np.real(res_circ),np.imag(res_circ))
+                axis.set_aspect('equal')
+            plt.show()
+            
+        in_zone = np.asarray([abs(RO[j,0]-z_state)<r_select for j in range(len(t_ramsey))])
+        in_RO = [[RO[j,k][in_zone[j]] for k in range(2)] for j in range(len(t_ramsey))]
+        in_RO2_avrg = self.IQ_rot(np.asarray([np.average(in_RO[j][1]) for j in range(len(t_ramsey))]))[0]
+        in_RO2_avrg_zeroed = np.real(in_RO2_avrg)-np.average(np.real(in_RO2_avrg))
+        
+        def Ramsey(p,x):
+            f,T,A,phi,b,c = p
+            return A*np.exp(-x/T)*np.cos(2*np.pi*f*x+phi)+b+c*x
+    
+        data_y = in_RO2_avrg_zeroed[1:]
+        data_x = t_ramsey[1:]*1e9
+        ampl_0 = np.sign(data_y[1]-data_y[0])*(np.amax(data_y)-np.amin(data_y))/2
+        #freq_0 = np.fft.fftfreq(len(data_y))[np.argmax(abs(np.fft.fft(data_y)))]/(data_x[1]-data_x[0])
+        freq_0 = 1/400
+        
+        #phase should not be necessary but there is some incomprehension about the fluxonium drives
+        if (data_y[1]-data_y[0])<0:
+            p0 = [freq_0,500,-ampl_0,np.pi/2,0,1e-4]
+        else:
+            p0 = [freq_0,500,ampl_0,np.pi/2,0,1e-4]
+        
+        # to make fit robust to single outliers we fit once
+        # then remove the point furthest away from the fit
+        # and fit again using the first fit as a guess
+        popt_init = self.fit_and_show(data_x,data_y,Ramsey,p0,show_plot=False,ret_error=True)[1]
+        dists = abs((Ramsey(popt_init,data_x)-data_y)**2)
+        furthest_index = np.argmax(dists)
+        data_y_nooutlier = np.delete(data_y,furthest_index)
+        data_x_nooutlier = np.delete(data_x,furthest_index)
+        
+        popt_final,error = self.fit_and_show(data_x_nooutlier,data_y_nooutlier,
+                                      Ramsey,popt_init,
+                                      show_plot=self.show_plots,
+                                      ret_error=True)[1:]
+        
+        #if (abs(error/popt_final)[:-3] > 0.5).any():
+        #    log = logging.getLogger(__name__)
+        #    msg = ('Ramsey fit has abnormally high fit error.')
+        #    log.warning(msg)
+        #    raise ValueError(msg)
+            
+        measured_detuning = popt_final[0]*1000 # convert to MHz
+        print('Ramsey detuning is: {}'.format(measured_detuning))
+        self.write_in_database('detuning', measured_detuning)
+        
     def check(self, *args, **kwargs):
         """ Check the target array can be found and has the right column.
 
@@ -299,7 +477,7 @@ class FindFluxDetuningTask(SimpleTask):
     Takes a frequency detuning as input and based on model (also with input)
     tries to calculate a good guess for the expected flux point
     """
-    
+       
     measured_detuning = Unicode().tag(pref=True,feval=VAL_REAL)
     
     coupling = Unicode().tag(pref=True,feval=VAL_REAL)
@@ -348,3 +526,87 @@ class FindFluxDetuningTask(SimpleTask):
         self.write_in_database('current_freq', current_freq)
         self.write_in_database('voltage_shift', voltage_shift)
         self.write_in_database('target_frequency', coupling)
+        
+class FindFluxDetuning2Task(SimpleTask):
+    """
+    Takes a frequency detuning as input and based on model (also with input)
+    tries to calculate a good guess for the expected flux point
+    """
+    
+    feedback_function_code = Str(DEFAULT_FORMULA).tag(pref=True)
+    
+    voltage_precision = Unicode().tag(pref=True,feval=VAL_REAL)
+    
+    measured_detuning = Unicode().tag(pref=True,feval=VAL_REAL)
+    
+    drive_freq = Unicode().tag(pref=True,feval=VAL_REAL)
+    
+    target_freq = Unicode().tag(pref=True,feval=VAL_REAL)
+    
+    max_delta = Unicode().tag(pref=True,feval=VAL_REAL)
+    
+    database_entries = set_default({'current_freq': 157.0,
+                                    'voltage_shift': 0.01,
+                                    'target_frequency':157.0})
+    
+    def check(self, *args, **kwargs):
+        """
+        """
+        test, traceback = super(FindFluxDetuning2Task, self).check(*args,
+                                                             **kwargs)
+        
+        try:
+            exec(self.feedback_function_code)
+        except:
+            test = False
+            print('''The code-string used to define the feedback function
+                     contains an error. Please check and test it again.''')
+            return test, traceback
+        
+        try:
+            locals()['feedback_function']
+        except NameError as e:
+            test = False
+            print(e)
+            print('''The name of the function used for the feedback
+                     function is not valid. It should start as "def feedback_function(x):" 
+                     where x is a frequency and it returns a voltage. ''')
+            return test, traceback
+            
+        return test, traceback
+        
+    
+    def perform(self, voltage_precision=None, measured_detuning=None, drive_freq=None, target_freq=None, max_delta=None):
+        
+        if voltage_precision is None:
+            voltage_precision = self.format_and_eval_string(self.voltage_precision)
+        if measured_detuning is None:
+            measured_detuning = self.format_and_eval_string(self.measured_detuning)
+        if drive_freq is None:
+            drive_freq = self.format_and_eval_string(self.drive_freq)
+        if target_freq is None:
+            target_freq = self.format_and_eval_string(self.target_freq)
+        if max_delta is None:
+            max_delta = self.format_and_eval_string(self.max_delta)
+            
+        exec(self.feedback_function_code) ## creates a function named feedback_function
+        
+        current_freq = drive_freq + measured_detuning # we assume the drive frequency is below the qubit frequency
+        
+        current_voltage = np.round(locals()['feedback_function'](current_freq),voltage_precision)
+        target_voltage = np.round(locals()['feedback_function'](target_freq),voltage_precision)
+        
+        voltage_shift = current_voltage-target_voltage
+        
+        print('Frequency according to Ramsey is: {}'.format(current_freq))
+        print('The suggested voltage shift is: {}'.format(voltage_shift))
+
+        if abs(voltage_shift) > max_delta:
+            log = logging.getLogger(__name__)
+            msg = ('The calculated voltage shift is too large!')
+            log.warning(msg)
+            raise ValueError(msg)
+        
+        self.write_in_database('current_freq', current_freq)
+        self.write_in_database('voltage_shift', voltage_shift)
+        self.write_in_database('target_frequency', target_freq)

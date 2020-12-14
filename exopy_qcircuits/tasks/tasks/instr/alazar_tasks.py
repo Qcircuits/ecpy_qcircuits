@@ -91,17 +91,16 @@ class DemodAlazarTask(InstrumentTask):
         """
         test, traceback = super(DemodAlazarTask, self).check(*args,
                                                              **kwargs)
-
         if (self.format_and_eval_string(self.tracesnumber) %
                 self.format_and_eval_string(self.tracesbuffer) != 0 ):
             test = False
             traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
                 cleandoc('''The number of traces must be an integer multiple of the number of traces per buffer.''')
 
-        if not (self.format_and_eval_string(self.tracesnumber) >= 1000):
-            test = False
-            traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
-                cleandoc('''At least 1000 traces must be recorded. Please make real measurements and not noisy s***.''')
+#        if not (self.format_and_eval_string(self.tracesnumber) >= 1000):
+#            test = False
+#            traceback[self.task_path + '/' + self.task_name + '-get_demod'] = \
+#                cleandoc('''At least 1000 traces must be recorded. Please make real measurements and not noisy s***.''')
 
         time = self.format_string(self.timeaftertrig, 10**-9, 1)
         duration = self.format_string(self.duration, 10**-9, 1)
@@ -182,7 +181,6 @@ class DemodAlazarTask(InstrumentTask):
         triglevel = self.format_and_eval_string(self.triglevel)
 
         self.driver.configure_board(trigrange,triglevel)
-
         recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         recordsPerBuffer = int(self.format_and_eval_string(self.tracesbuffer))
 

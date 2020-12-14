@@ -44,6 +44,52 @@ def eval_with_units(task,evaluee):
     multiplier = unitdict[unit]
     value = value * multiplier
     return value
+
+class StartStopHDAWGTask(InstrumentTask):
+    """ Run current sequence in LabOne interface
+    """
+    start_stop = Unicode().tag(pref=True) #True == Start, False == Stop
+    
+    def perform(self):
+        """
+        """
+        if self.start_stop == 'Start':
+            start_stop = 1
+        elif self.start_stop == 'Stop':
+            start_stop = 0
+        else:
+            msg = 'Incorrect command string to HDAWG Start Stop task'
+            raise ValueError(msg)
+        
+        if not self.driver.daq:
+            self.start_driver()
+            
+        if not self.driver.saveConfig:
+            path = self.format_string('{default_path}')
+            measId = self.format_string('LabOne_settings_{meas_id}.xml')
+            full_path = os.path.join(path,measId)
+            self.driver.saveConfiguration(full_path)
+        
+        device = self.driver.device
+        if not self.driver.awgModule:
+            self.driver.awgModule = self.driver.daq.awgModule()
+            self.driver.awgModule.set('awgModule/device', device)
+            self.driver.awgModule.execute()
+        
+        device = self.driver.device
+
+        # Start the AWG in single-shot mode. CAREFUL this does not activate the outputs
+        self.driver.daq.setInt('/%s/awgs/0/enable' %device, start_stop) # start/stop equiv
+        self.driver.daq.sync()
+        
+        if self.start_stop == 'Start':
+            time.sleep(0.5) #gives HDAWG time to send commands to various output settings (oscillators etc etc)
+        
+            #now wait for the signal outputs to set the correct delays
+            while not reduce(mul, [1-self.driver.daq.getInt('/{}/sigouts/{}/busy'.format(device,i)) for i in self.driver.channels], 1):
+                time.sleep(0.5)
+            
+            self.driver.daq.sync()
         
 class PulseTransferHDAWGTask(InstrumentTask):
     """ Give a pulse sequence to HDAWG
@@ -55,10 +101,29 @@ class PulseTransferHDAWGTask(InstrumentTask):
                                                     ordered_dict_from_pref))
     reference_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
+    
+        
+    def check(self, *args, **kwargs):
+        test, traceback = super(PulseTransferHDAWGTask,
+                                self).check(*args, **kwargs)
+
+        de = self.database_entries.copy()
+        for k in self.database_entries:
+            if 'instrument' not in k:
+                del de[k]
+        
+        for l, v in self.modified_values.items():
+            de[l[1:-1]] = 1
+        self.database_entries = de
+        
+        return test, traceback
+
            
     def perform(self):
         """
         """
+        
+
         if not self.driver.daq:
             self.start_driver()
             
@@ -69,7 +134,7 @@ class PulseTransferHDAWGTask(InstrumentTask):
             self.driver.saveConfiguration(full_path)
         
         device = self.driver.device
-        exp_setting = [['/%s/awgs/0/single' % device, 1]]# mode rerun, the awg repeat the sequence]
+        exp_setting = [['/%s/awgs/0/single' % device, 1]] #AWG only runs the sequence once
 
 
         self.driver.daq.set(exp_setting)
@@ -91,17 +156,16 @@ class PulseTransferHDAWGTask(InstrumentTask):
         
         # replace text keys with values from exopy
         for l, v in self.modified_values.items():
-            value = str(eval_with_units(self,v))
-            awg_program = awg_program.replace(l, value)
-           
+            #value = str(eval_with_units(self,v))
+            awg_program = awg_program.replace(l, str(eval_with_units(self,v)))
+            self.write_in_database(l[1:-1], eval_with_units(self,v))
+            
         # transfer the sequence to the AWG
         self.driver.TransferSequence(awg_program)
         
         # execute commented commands in sequence from exopy if not already implemented
-        #replace_vals = {}
         for l, v in self.modified_values.items():
             value = str(eval_with_units(self,v))
-            #replace_vals[l[1:-1]] = value
             awg_program = awg_program.replace(l[1:-1], value)
             
         lines = awg_program.split('\n')
