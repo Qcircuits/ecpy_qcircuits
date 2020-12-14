@@ -42,8 +42,11 @@ enamldef DemodAlazarView(InstrView): view:
 
     Label: traces:
         text = 'Number of traces'
-    Field: traces_val:
-        text := task.tracesnumber
+    QtLineCompleter: traces_val:
+            text := task.tracesnumber
+            entries_updater << task.list_accessible_database_entries
+#    Field: traces_val:
+#        text := task.tracesnumber
 
     Label: buffer:
         text = 'Traces per Buffer'

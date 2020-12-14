@@ -12,6 +12,8 @@
 from __future__ import (division, unicode_literals, print_function,
                         absolute_import)
 
+from atom.api import set_default
+
 from inspect import cleandoc
 from textwrap import fill
 from collections import OrderedDict
@@ -69,7 +71,6 @@ def load_sequence(core, file, task):
         lines = [line for line in seqfile.readlines()]
         seqfile.close()
         para = []
-        URs = {}
         for line in lines:
             splitundrscr = line.split('_')
             if len(splitundrscr) == 3 and splitundrscr[2] == ';\n': # exactly two _ in the line
@@ -80,6 +81,16 @@ def load_sequence(core, file, task):
         for k in (e for e in task.modified_values if e in new):
             new[k] = task.modified_values[k]
         task.modified_values = new
+        
+        de = task.database_entries.copy()
+        for k in task.database_entries:
+            if 'instrument' not in k:
+                del de[k]
+        
+        for l, v in new.items():
+            de[l[1:-1]] = '0.0'
+        task.database_entries = de
+
 
 enamldef parameter_to_set(Container):
     """View to edit aparameter/index/value list.
@@ -230,7 +241,19 @@ enamldef parameter_to_set(Container):
                 text := model.value3
                 entries_updater = model.task.list_accessible_database_entries
                 tool_tip =('''Value of waveform amplitude. Amplitude is a number between 0 and 1.''')
-            
+                
+enamldef StartStopHDAWGView(InstrView): view:
+    
+    constraints = [vbox(hbox(instr_label,instr_selection),
+                        hbox(startstop_lab,startstop_val))]
+    
+    Label: startstop_lab:
+        text = 'Command :'
+    ObjectCombo: startstop_val:
+        items <<  ['Start','Stop']
+        tool_tip = ('Command to send to HDAWG')
+        selected := task.start_stop
+
 enamldef PulseTransferHDAWGView(InstrView): view:
     
     constraints = [vbox(hbox(instr_label,instr_selection),
@@ -258,11 +281,13 @@ enamldef PulseTransferHDAWGView(InstrView): view:
                     if file:
                         task.PulseSeqFile = file
                         load_sequence(view.root.core,file, task)
+#                        task.sequence_loaded()
             PushButton: seq_re:
                 enabled << bool(task.PulseSeqFile)
                 text = 'Refresh'
                 clicked ::
                     load_sequence(view.root.core,file.text, task)
+#                    task.sequence_loaded()
 
     DictListEditor4(modified_values): ed:
         ed.mapping := task.modified_values

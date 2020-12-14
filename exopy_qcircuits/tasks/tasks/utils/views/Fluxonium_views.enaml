@@ -1,8 +1,8 @@
 """Views of the array loop tasks
 
 """
-from enaml.layout.api import grid
-from enaml.widgets.api import (Label, Field, CheckBox)
+from enaml.layout.api import grid, hbox, vbox, align
+from enaml.widgets.api import (Label, Field, CheckBox, MultilineField)
 
 from exopy.utils.widgets.qt_completers import QtLineCompleter
 from exopy.tasks.api import EVALUATER_TOOLTIP, BaseTaskView
@@ -181,6 +181,65 @@ enamldef FindFluxDetuningView(BaseTaskView): view:
     Field: ftv_val:
         text := task.freq_to_volt
         tool_tip = ('Constant which gives the scaling between frequency and voltage close to half flux')
+    
+    Label: delta_lab:
+        text = 'Max Delta Volt:'
+    QtLineCompleter: delta_val:
+        hug_width = 'ignore'
+        text := task.max_delta
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Maximum allowed excursion fron the current voltage setting.'+
+                    'Measurement will fail if the difference between the current'+
+                    'voltage and the to be set voltage is larger than this value.')
+        
+enamldef FindFluxDetuning2View(BaseTaskView): view:
+
+    constraints << [vbox(grid([detuning_lab,freq_lab,tfreq_lab,precision_lab,delta_lab],
+                              [detuning_val,freq_val,tfreq_val,precision_val,delta_val]),
+                         hbox(function_lab,function_val)),
+                    align('v_center', function_lab, function_val)]
+                    #detuning_val.width==freq_val.width==precision_val.width==delta_val.width==100,
+                    #function_val.width==500]
+    
+       
+    Label: detuning_lab:
+        text = 'Measured detuning:'
+    QtLineCompleter: detuning_val:
+        hug_width = 'ignore'
+        text := task.measured_detuning
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Detuning in MHz measured by a Ramsey oscillation')
+        
+    Label: freq_lab:
+        text = 'Ramsey Drive Freq:'
+    QtLineCompleter: freq_val:
+        hug_width = 'ignore'
+        text := task.drive_freq
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Detuning in MHz measured by a Ramsey oscillation')
+        
+    Label: tfreq_lab:
+        text = 'Qubit Target Frequency:'
+    QtLineCompleter: tfreq_val:
+        hug_width = 'ignore'
+        text := task.target_freq
+        entries_updater << task.list_accessible_database_entries
+        tool_tip = ('Frequency targeted in feedback')
+        
+    Label: function_lab:
+        text = 'Feedback function:'
+    MultilineField: function_val:
+        text := task.feedback_function_code
+        tool_tip = ('''The code-string used to define the feedback function.
+                    It should start as "def feedback_function(x):" 
+                    (the name is important) where x is a frequency 
+                    and it returns a voltage.''')
+        
+    Label: precision_lab:
+        text = 'Voltage Precision'
+    Field: precision_val:
+        text := task.voltage_precision
+        tool_tip = ('Precision with which to suggest voltage setting given in digits after decimal point for value in volts.')
     
     Label: delta_lab:
         text = 'Max Delta Volt:'
