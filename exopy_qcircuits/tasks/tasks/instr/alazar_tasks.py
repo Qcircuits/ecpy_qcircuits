@@ -93,6 +93,7 @@ class DemodAlazarTask(InstrumentTask):
         """
         test, traceback = super(DemodAlazarTask, self).check(*args,
                                                              **kwargs)
+
         if (self.format_and_eval_string(self.tracesnumber) %
                 self.format_and_eval_string(self.tracesbuffer) != 0 ):
             test = False
@@ -303,6 +304,7 @@ class DemodAlazarTask(InstrumentTask):
         triglevel = self.format_and_eval_string(self.triglevel)
 
         self.driver.configure_board(trigrange,triglevel)
+
         recordsPerCapture = self.format_and_eval_string(self.tracesnumber)
         recordsPerBuffer = int(self.format_and_eval_string(self.tracesbuffer))
 
