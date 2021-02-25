@@ -12,8 +12,6 @@
 from __future__ import (division, unicode_literals, print_function,
                         absolute_import)
 
-from atom.api import set_default
-
 from inspect import cleandoc
 from textwrap import fill
 from collections import OrderedDict
@@ -43,7 +41,7 @@ enamldef modified_values(Container):
 
     QtLineCompleter: k:
         text := model.key
-        #entries_updater = model.task.list_accessible_database_entries
+        entries_updater = model.task.list_accessible_database_entries
         tool_tip = ('Labels to change in the AWG txt file')
         
     QtLineCompleter: v0:
@@ -55,7 +53,24 @@ enamldef modified_values(Container):
         items <<  ['','none', 'ns', 'GHz', 'MHz' ,'clock_samples', 's', 'µs','ns_to_clck']
         tool_tip = ('Unit of the item')
         selected := model.value1
+        
+enamldef reference_values(Container):
+    """View to edit a key/value pair.
 
+    """
+    #: Reference to the key/value pair being edited
+    attr model
+    constraints = [hbox(k, v0), k.width == v0.width]
+    padding = 1
+    
+    Label: k:
+        text = model.key
+        tool_tip = ('Variable in sequence file')
+        
+    Label: v0:
+        text = 'User Register ' + model.value0
+        tool_tip = ('Corresponding user register')
+        
 def load_sequence(core, file, task):
     
     seqfile = None
@@ -71,26 +86,26 @@ def load_sequence(core, file, task):
         lines = [line for line in seqfile.readlines()]
         seqfile.close()
         para = []
+        URs = {}
         for line in lines:
             splitundrscr = line.split('_')
             if len(splitundrscr) == 3 and splitundrscr[2] == ';\n': # exactly two _ in the line
                 elements = splitundrscr[1]
                 para.append('_{}_'.format(elements))
+            if 'var' in line and 'getUserReg' in line:
+                varname = (line.split('var ')[1]).split(' =')[0]
+                URnum = int(((line.split('getUserReg(')[1]).split(')')[0]))
+                URs[varname] = URnum
+        
+        refvals = OrderedDict.fromkeys(URs.keys(),['','','',''])
+        for key in URs.keys():
+            refvals[key] = [str(URs[key]+1),'','','']
+        task.reference_values = refvals
                 
         new = OrderedDict.fromkeys(para, ['','','',''])
         for k in (e for e in task.modified_values if e in new):
             new[k] = task.modified_values[k]
         task.modified_values = new
-        
-        de = task.database_entries.copy()
-        for k in task.database_entries:
-            if 'instrument' not in k:
-                del de[k]
-        
-        for l, v in new.items():
-            de[l[1:-1]] = '0.0'
-        task.database_entries = de
-
 
 enamldef parameter_to_set(Container):
     """View to edit aparameter/index/value list.
@@ -132,11 +147,11 @@ enamldef parameter_to_set(Container):
         Label: v1txt:
             text = 'Index :'
         Conditional:
-            condition << ('Phase shift' in v0.selected or 'Amplitude Range' in v0.selected)
+            condition << ('Phase shift' in v0.selected or 'Amplitude Range' in v0.selected or 'LowPass' in v0.selected or 'Demod' in v0.selected)
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8']
                 selected := model.value1
-                tool_tip =('Index of sine generator. Ex 4 for sine generator 4')
+                tool_tip =('Index of demodulator. Ex 4 for demodulator 4')
         Conditional:
             condition << (v0.selected == 'Oscillator')
             ObjectCombo:
@@ -148,7 +163,7 @@ enamldef parameter_to_set(Container):
             ObjectCombo:
                 items <<  ['1','2','3','4','5','6','7','8']
                 selected := model.value1
-                tool_tip =('Index of waveform generator. Ex 1 for waveform generator 1')
+                tool_tip =('Index of Waveform. Ex 1 for Waveform output 1')
         Conditional:
             condition << (v0.selected ==  'Hold' )
             ObjectCombo:
@@ -169,10 +184,10 @@ enamldef parameter_to_set(Container):
                 tool_tip =('Index of Waveform Generator. Ex 1 for Waveform output 1')
             
     Container:v2:
+        Label: v2txt:
+            text = 'Value :'
         Conditional:
             condition << ( v0.selected == 'Amplitude Range') 
-            Label: v2txt:
-                text = 'Value :'
             ObjectCombo:
                 items << ['0.2','0.4','0.6','0.8','1','2','3','4','5']
                 selected := model.value2
@@ -180,84 +195,48 @@ enamldef parameter_to_set(Container):
                 
         Conditional:
             condition << ( (v0.selected == 'Modulation Mode') and model.value1 != '')
-            Label: v2txt:
-                text = 'Value :'
             ObjectCombo:
                 items << ['Off',
-                          str(int(float(model.value1))+int(float(model.value1))%2-1)+str(int(float(model.value1))+int(float(model.value1))%2-1),
-                          str(int(float(model.value1))+int(float(model.value1))%2)+str(int(float(model.value1))+int(float(model.value1))%2),
-                          str(int(float(model.value1))+int(float(model.value1))%2-1)+str(int(float(model.value1))+int(float(model.value1))%2),
-                          str(int(float(model.value1))+int(float(model.value1))%2)+str(int(float(model.value1))+int(float(model.value1))%2-1),
+                          str(int(float(model.value1))+int(float(model.value1))%2-1),
+                          str(int(float(model.value1))+int(float(model.value1))%2),
                           'Advanced']
                 selected := model.value2
                 tool_tip = ('Select Sine Generator to modulate with')
-                
-        Conditional:
-            condition << (v0.selected == 'Waveform Amplitude')
-            Label: v2txt:
-                text = 'Wave :'
-            ObjectCombo:
-                items << [str(int(float(model.value1))+int(float(model.value1))%2-1),
-                          str(int(float(model.value1))+int(float(model.value1))%2)]
-                selected := model.value2
-                tool_tip = ('Select Wave to set the amplitude of')
                         
         Conditional:
             condition << ( v0.selected == 'Hold' ) 
-            Label: v2txt:
-                text = 'Value :'
             ObjectCombo:
                 items << ['On','Off']
                 selected := model.value2
                 tool_tip =('Hold mode on or off')
                 
         Conditional:
-            condition<<(v0.selected not in ['Amplitude Range','Hold','Modulation Mode','Waveform Amplitude'])
-            Label: v2txt:
-                text = 'Value :'
+            condition<<(v0.selected not in ['Amplitude Range','Hold','Modulation Mode'])
             QtLineCompleter:
                 text := model.value2
                 entries_updater = model.task.list_accessible_database_entries
                 tool_tip =('''Value of parameter. Ex 30e3 for a frequency of 30 kHz.
-                           Oscillator's frequency must be lower than 600 MHz.
-                           User Register's value will be rounded down to the previous integer.
-                           Phase must be in degrees.''')
+                           Oscillator's frequency musst be lower than 600 MHz.
+                           Warning : User Register's value will be rounded down to the last integer.
+                           AWH output take a number between 0 and 1 
+                           ( min and max of the signal output scale).
+                           Phase musst be in degree.
+                           Output are in Volts''')
                 
     Container:v3:
         Conditional:
-            condition << (v0.selected not in ['Amplitude Range','Hold','Modulation Mode','Waveform Amplitude','Phase shift']) 
+            condition << (v0.selected not in ['Amplitude Range','Hold','Modulation Mode']) 
             Label: v3txt:
                 text = 'Unit :'
             ObjectCombo: v3:
-                items <<  ['','none', 'ns', 'GHz', 'MHz' ,'clock_samples', 's', 'µs','ns_to_clck']
+                items <<  ['none', 'ns', 'GHz' ,'clock_samples', 's', 'µs', 'ns_to_clck']
                 tool_tip = ('Unit of the item')
                 selected := model.value3
-                
-        Conditional:
-            condition << (v0.selected == 'Waveform Amplitude') 
-            Label: v3txt:
-                text = 'Value :'
-            QtLineCompleter:
-                text := model.value3
-                entries_updater = model.task.list_accessible_database_entries
-                tool_tip =('''Value of waveform amplitude. Amplitude is a number between 0 and 1.''')
-                
-enamldef StartStopHDAWGView(InstrView): view:
-    
-    constraints = [vbox(hbox(instr_label,instr_selection),
-                        hbox(startstop_lab,startstop_val))]
-    
-    Label: startstop_lab:
-        text = 'Command :'
-    ObjectCombo: startstop_val:
-        items <<  ['Start','Stop']
-        tool_tip = ('Command to send to HDAWG')
-        selected := task.start_stop
-
+            
 enamldef PulseTransferHDAWGView(InstrView): view:
     
     constraints = [vbox(hbox(instr_label,instr_selection),
-                        file_cont, ed)]#, ed2)]
+                        file_cont, ed, ed2)]
     Container: file_cont:
 
 
@@ -281,18 +260,21 @@ enamldef PulseTransferHDAWGView(InstrView): view:
                     if file:
                         task.PulseSeqFile = file
                         load_sequence(view.root.core,file, task)
-#                        task.sequence_loaded()
             PushButton: seq_re:
                 enabled << bool(task.PulseSeqFile)
                 text = 'Refresh'
                 clicked ::
                     load_sequence(view.root.core,file.text, task)
-#                    task.sequence_loaded()
 
     DictListEditor4(modified_values): ed:
         ed.mapping := task.modified_values
         ed.operations = ('add', 'move', 'remove')
         ed.attributes = {'task': task}
+        
+    DictListEditor4(reference_values): ed2:
+        ed2.mapping := task.reference_values
+        #ed2.operations = ('add', 'move', 'remove')
+        ed2.attributes = {'task': task}
     
 enamldef  OutputOnOffHDAWGView(InstrView): view:
     """View for the OutputOnOffHDAWGTask.
