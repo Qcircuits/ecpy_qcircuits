@@ -20,7 +20,7 @@ import scipy.odr as odr
 import numbers
 import scipy.optimize as opt
 
-from atom.api import (Unicode, set_default, Bool, Float, Str)
+from atom.api import (Str, set_default, Bool, Float, Str)
 from exopy.tasks.api import SimpleTask, validators, TaskInterface, InterfaceableTaskMixin
 from exopy.tasks.api import validators
 
@@ -40,36 +40,36 @@ class FluxoniumFluxMapArrayTask(SimpleTask):
     """
     
     #Fluxonium parameters
-    Ec = Unicode().tag(pref=True)
-    Ej = Unicode().tag(pref=True)
-    El = Unicode().tag(pref=True)
+    Ec = Str().tag(pref=True)
+    Ej = Str().tag(pref=True)
+    El = Str().tag(pref=True)
     
     # number of fluxes to calculate
-    N_calculated_fluxes = Unicode().tag(pref=True)
+    N_calculated_fluxes = Str().tag(pref=True)
     
     #number of volts per flux quantum
-    fluxquantum_volts = Unicode().tag(pref=True)
+    fluxquantum_volts = Str().tag(pref=True)
     
     #number of volts at half flux
-    fluxhalf_volts = Unicode().tag(pref=True)
+    fluxhalf_volts = Str().tag(pref=True)
     
     #measure from volt_min to volt_max
-    volt_min = Unicode().tag(pref=True)
-    volt_max = Unicode().tag(pref=True)
+    volt_min = Str().tag(pref=True)
+    volt_max = Str().tag(pref=True)
     
     #measure from freq_min to freq_max
-    freq_min = Unicode().tag(pref=True)
-    freq_max = Unicode().tag(pref=True)
+    freq_min = Str().tag(pref=True)
+    freq_max = Str().tag(pref=True)
     
     #measure in frequency band around theoretical frequency
-    freq_band = Unicode().tag(pref=True)
+    freq_band = Str().tag(pref=True)
     
     #frequency and voltage steps
-    freq_granularity = Unicode().tag(pref=True)
-    volt_granularity = Unicode().tag(pref=True)
+    freq_granularity = Str().tag(pref=True)
+    volt_granularity = Str().tag(pref=True)
     
     #qubit transition to follow
-    transition = Unicode().tag(pref=True)
+    transition = Str().tag(pref=True)
     
     database_entries = set_default({'volt_tomeasure': np.empty(2), 'freqs_tomeasure': np.empty((2,2))})
     
@@ -138,14 +138,14 @@ class FitRamseyTask(SimpleTask):
     The analysis makes lots of assumptions on the structure of the RO
     """
     
-    target_data = Unicode().tag(pref=True, feval=ARR_VAL)
+    target_data = Str().tag(pref=True, feval=ARR_VAL)
     
     wait = set_default({'activated': True}) # Wait on all pools by default.
     
     # keys of the data which we want to analyze
-    time_key = Unicode().tag(pref=True)
-    I_key = Unicode().tag(pref=True)
-    Q_key = Unicode().tag(pref=True)
+    time_key = Str().tag(pref=True)
+    I_key = Str().tag(pref=True)
+    Q_key = Str().tag(pref=True)
     show_plots = Bool(False).tag(pref=True)
     
     database_entries = set_default({'detuning': 0.0})
@@ -478,15 +478,15 @@ class FindFluxDetuningTask(SimpleTask):
     tries to calculate a good guess for the expected flux point
     """
        
-    measured_detuning = Unicode().tag(pref=True,feval=VAL_REAL)
+    measured_detuning = Str().tag(pref=True,feval=VAL_REAL)
     
-    coupling = Unicode().tag(pref=True,feval=VAL_REAL)
+    coupling = Str().tag(pref=True,feval=VAL_REAL)
     
-    freq_to_volt = Unicode().tag(pref=True,feval=VAL_REAL)
+    freq_to_volt = Str().tag(pref=True,feval=VAL_REAL)
     
-    drive_freq = Unicode().tag(pref=True,feval=VAL_REAL)
+    drive_freq = Str().tag(pref=True,feval=VAL_REAL)
     
-    max_delta = Unicode().tag(pref=True,feval=VAL_REAL)
+    max_delta = Str().tag(pref=True,feval=VAL_REAL)
     
     database_entries = set_default({'current_freq': 157.0,
                                     'voltage_shift': 0.01,
@@ -535,15 +535,15 @@ class FindFluxDetuning2Task(SimpleTask):
     
     feedback_function_code = Str(DEFAULT_FORMULA).tag(pref=True)
     
-    voltage_precision = Unicode().tag(pref=True,feval=VAL_REAL)
+    voltage_precision = Str().tag(pref=True,feval=VAL_REAL)
     
-    measured_detuning = Unicode().tag(pref=True,feval=VAL_REAL)
+    measured_detuning = Str().tag(pref=True,feval=VAL_REAL)
     
-    drive_freq = Unicode().tag(pref=True,feval=VAL_REAL)
+    drive_freq = Str().tag(pref=True,feval=VAL_REAL)
     
-    target_freq = Unicode().tag(pref=True,feval=VAL_REAL)
+    target_freq = Str().tag(pref=True,feval=VAL_REAL)
     
-    max_delta = Unicode().tag(pref=True,feval=VAL_REAL)
+    max_delta = Str().tag(pref=True,feval=VAL_REAL)
     
     database_entries = set_default({'current_freq': 157.0,
                                     'voltage_shift': 0.01,

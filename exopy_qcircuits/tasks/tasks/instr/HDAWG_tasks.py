@@ -48,7 +48,7 @@ def eval_with_units(task,evaluee):
 class StartStopHDAWGTask(InstrumentTask):
     """ Run current sequence in LabOne interface
     """
-    start_stop = Unicode().tag(pref=True) #True == Start, False == Stop
+    start_stop = Str().tag(pref=True) #True == Start, False == Stop
     
     def perform(self):
         """
@@ -96,7 +96,6 @@ class PulseTransferHDAWGTask(InstrumentTask):
 
     """
     PulseSeqFile = Str('pulseSeqFile.txt').tag(pref=True)
-
     modified_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
     reference_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
@@ -251,6 +250,18 @@ class SetParametersHDAWGTask(InstrumentTask):
                 current_val = self.driver.daq.getDouble(command % (device,awg,channel,wave))
                 if abs(current_val - value) > 0.001:
                     exp_setting = exp_setting + [[command % (device,awg,channel,wave), value]]
+
+            if v[0] == 'Offset':
+                #channel = self.format_and_eval_string(v[1])-1
+                wave = self.format_and_eval_string(v[1])-1
+                value = self.format_and_eval_string(v[2])
+                #awg = channel//2 #2 channels per AWG
+                #channel = channel%2
+                #wave = wave%2
+                command = '/%s/sigouts/%d/offset'
+                current_val = self.driver.daq.getDouble(command % (device,wave))
+                if abs(current_val - value) > 0.001:
+                    exp_setting = exp_setting + [[command % (device,wave), value]]  
                     
             elif v[0] == 'Oscillator':
                 channel = self.format_and_eval_string(v[1])-1

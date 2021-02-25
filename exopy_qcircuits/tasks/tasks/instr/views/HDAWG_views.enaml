@@ -123,7 +123,8 @@ enamldef parameter_to_set(Container):
                        'Phase shift',
                        'Amplitude Range',
                        'Hold',
-                       'Modulation Mode']
+                       'Modulation Mode',
+                       'Offset']
             selected := model.value0
             
             tool_tip = ('Name of parameter. Ex Oscillator for oscillator 4')
@@ -167,6 +168,12 @@ enamldef parameter_to_set(Container):
                 items <<  ['1','2','3','4','5','6','7','8']
                 selected := model.value1
                 tool_tip =('Index of Waveform Generator. Ex 1 for Waveform output 1')
+        Conditional:
+            condition << (v0.selected ==  'Offset' )
+            ObjectCombo:
+                items <<  ['1','2','3','4','5','6','7','8']
+                selected := model.value1
+                tool_tip =('Index of Wave output. Ex 1 for Wave output 1')
             
     Container:v2:
         Conditional:
@@ -193,7 +200,7 @@ enamldef parameter_to_set(Container):
                 tool_tip = ('Select Sine Generator to modulate with')
                 
         Conditional:
-            condition << (v0.selected == 'Waveform Amplitude')
+            condition << (v0.selected == 'Waveform Amplitude' and model.value1 != '')
             Label: v2txt:
                 text = 'Wave :'
             ObjectCombo:
@@ -221,11 +228,11 @@ enamldef parameter_to_set(Container):
                 tool_tip =('''Value of parameter. Ex 30e3 for a frequency of 30 kHz.
                            Oscillator's frequency must be lower than 600 MHz.
                            User Register's value will be rounded down to the previous integer.
-                           Phase must be in degrees.''')
+                           Phase must be in degrees. Offset must be smaller than 3.5V''')
                 
     Container:v3:
         Conditional:
-            condition << (v0.selected not in ['Amplitude Range','Hold','Modulation Mode','Waveform Amplitude','Phase shift']) 
+            condition << (v0.selected not in ['Amplitude Range','Hold','Modulation Mode','Waveform Amplitude','Phase shift','Offset']) 
             Label: v3txt:
                 text = 'Unit :'
             ObjectCombo: v3:
