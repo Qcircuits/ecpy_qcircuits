@@ -311,7 +311,6 @@ class PulseTransferUHFLITask(InstrumentTask):
 
     """
     PulseSeqFile = Str('pulseSeqFile.txt').tag(pref=True)
-
     modified_values = Typed(OrderedDict, ()).tag(pref=(ordered_dict_to_pref,
                                                     ordered_dict_from_pref))
     mod1 = Bool(False).tag(pref=True)

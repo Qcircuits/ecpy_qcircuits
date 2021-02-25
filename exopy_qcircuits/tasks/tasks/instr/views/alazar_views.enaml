@@ -42,8 +42,11 @@ enamldef DemodAlazarView(InstrView): view:
 
     Label: traces:
         text = 'Number of traces'
-    Field: traces_val:
-        text := task.tracesnumber
+    QtLineCompleter: traces_val:
+            text := task.tracesnumber
+            entries_updater << task.list_accessible_database_entries
+#    Field: traces_val:
+#        text := task.tracesnumber
 
     Label: buffer:
         text = 'Traces per Buffer'
@@ -113,8 +116,9 @@ enamldef DemodAlazarView(InstrView): view:
 
         Label: duration:
             text = 'Duration (ns)'
-        Field: duration_val:
+        QtLineCompleter: duration_val:
             text := task.duration
+            entries_updater << task.list_accessible_database_entries
             tool_tip = fill(cleandoc(
                             '''Separate the durations with commas or enter a Python formula. Demodulation
                             on channel A will be disabled if one of the

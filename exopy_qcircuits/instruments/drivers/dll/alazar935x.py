@@ -270,7 +270,7 @@ class Alazar935x(DllInstrument):
             buffer = buffers[i]
             board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
 
-        start = time.clock()  # Keep track of when acquisition started
+        start = time.perf_counter()  # Keep track of when acquisition started
         board.startCapture()  # Start the acquisition
 
         if aux_trig:
@@ -279,7 +279,7 @@ class Alazar935x(DllInstrument):
             time.sleep(0.1)
             board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
 
-        if time.clock() - start > acquisition_timeout_sec:
+        if time.perf_counter() - start > acquisition_timeout_sec:
             board.abortCapture()
             raise Exception("Error: Capture timeout. Verify trigger")
             time.sleep(10e-3)
@@ -326,7 +326,7 @@ class Alazar935x(DllInstrument):
             samplesPerDemod.append(int(samplesPerSec * duration[i]) )
             data.append(np.empty((recordsPerCapture, samplesPerDemod[i])) )
 
-        start = time.clock()
+        start = time.perf_counter()
 
         buffersCompleted = 0
         while buffersCompleted < buffersPerAcquisition:
@@ -610,7 +610,7 @@ class Alazar935x(DllInstrument):
             buffer = buffers[i]
             board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
 
-        start = time.clock()  # Keep track of when acquisition started
+        start = time.perf_counter()  # Keep track of when acquisition started
         board.startCapture()  # Start the acquisition
 
         if aux_trig:
@@ -619,7 +619,7 @@ class Alazar935x(DllInstrument):
             time.sleep(0.1)
             board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
 
-        if time.clock() - start > acquisition_timeout_sec:
+        if time.perf_counter() - start > acquisition_timeout_sec:
             board.abortCapture()
             raise Exception("Error: Capture timeout. Verify trigger")
             time.sleep(10e-3)
@@ -661,7 +661,7 @@ class Alazar935x(DllInstrument):
                                           dtype='uint16') )
 
 
-        start = time.clock()
+        start = time.perf_counter()
 
         buffersCompleted = 0
         while buffersCompleted < buffersPerAcquisition:
@@ -694,6 +694,7 @@ class Alazar935x(DllInstrument):
         board.abortAsyncRead()
 
         if aux_trig:
+            #time.sleep(0.5)
             board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
             time.sleep(0.1)
             board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
@@ -853,10 +854,10 @@ class Alazar935x(DllInstrument):
             buffer = buffers[i]
             board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
 
-        start = time.clock()  # Keep track of when acquisition started
+        start = time.perf_counter()  # Keep track of when acquisition started
         board.startCapture()  # Start the acquisition
 
-        if time.clock() - start > acquisition_timeout_sec:
+        if time.perf_counter() - start > acquisition_timeout_sec:
             board.abortCapture()
             raise Exception("Error: Capture timeout. Verify trigger")
             time.sleep(10e-3)
@@ -872,7 +873,7 @@ class Alazar935x(DllInstrument):
             samplesPerDemod.append(int(samplesPerSec * duration[i]) )
             data.append(np.empty((recordsPerCapture, samplesPerDemod[i])) )
 
-        start = time.clock()
+        start = time.perf_counter()
 
         buffersCompleted = 0
         while buffersCompleted < buffersPerAcquisition:

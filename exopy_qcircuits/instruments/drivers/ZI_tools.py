@@ -58,7 +58,7 @@ class ZIInstrument(BaseInstrument):
         try:
             old_stdout = sys.stdout
             sys.stdout = open(os.devnull, "w")
-            (self.daq,self.device,self.props) = zhinst.utils.create_api_session(self.device_number, 
+            (self.daq,self.device,self.props) = zhinst.utils.create_api_session('dev'+self.device_number, 
                                                                                 self.apilevel,self.required_devtype,
                                                                                 self.required_options, self.required_err_msg);
             self._driver = 1

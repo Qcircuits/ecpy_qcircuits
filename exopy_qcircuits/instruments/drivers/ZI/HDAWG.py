@@ -38,13 +38,19 @@ try:
             self.awgModule = None
             self.required_devtype='.*HDAWG'
             self.required_options=['AWG','DIG']
+            self.awgs = [0,1,2,3]
             self.channels = [0,1,2,3,4,5,6,7]
             
         def close_connection(self):
             
             if self.awgModule:
                 if self.daq:
+                     # stop sequence
                     self.daq.setInt('/%s/awgs/0/enable' %self.device, 0)
+                    # remove hold mode on all channels
+                    for awg in self.awgs:
+                        for ch in self.channels[:2]:
+                            self.daq.setInt('/{}/awgs/{}/outputs/{}/hold'.format(self.device,awg,ch), 0)
                     self.awgModule.finish()
                     self.awgModule.clear()
                 
