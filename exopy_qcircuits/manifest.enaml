@@ -143,6 +143,21 @@ enamldef QcircuitsManifest(PluginManifest):
         Tasks:
             path = 'exopy_qcircuits.tasks.tasks'
             Tasks:
+                path='utils'
+                group='instr'
+                Task:
+                    task = 'Fluxonium_tasks:FitRamseyTask'
+                    view = 'views.Fluxonium_views:FitRamseyView'
+                Task:
+                    task = 'Fluxonium_tasks:FluxoniumFluxMapArrayTask'
+                    view = 'views.Fluxonium_views:FluxoniumFluxMapArrayView'
+                Task:
+                    task = 'Fluxonium_tasks:FindFluxDetuningTask'
+                    view = 'views.Fluxonium_views:FindFluxDetuningView'
+                Task:
+                    task = 'Fluxonium_tasks:FindFluxDetuning2Task'
+                    view = 'views.Fluxonium_views:FindFluxDetuning2View'
+            Tasks:
                 path = 'instr'
                 group = 'instr'
                 Task:
@@ -201,6 +216,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     task = 'UHFLI_tasks:DAQDemodUHFLITask'
                     view = 'views.UHFLI_views:DAQDemodUHFLIView'
                     instruments = ['exopy_qcircuits.Qcircuits.UHFLI']
+                Task:
+                    task = 'HDAWG_tasks:StartStopHDAWGTask'
+                    view = 'views.HDAWG_views:StartStopHDAWGView'
+                    instruments = ['exopy_qcircuits.Qcircuits.HDAWG']
                 Task:
                     task = 'HDAWG_tasks:PulseTransferHDAWGTask'
                     view = 'views.HDAWG_views:PulseTransferHDAWGView'
