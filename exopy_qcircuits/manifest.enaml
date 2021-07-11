@@ -87,6 +87,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     manufacturer = 'LabBrick'
                     model = 'LMS103'
                     kind = 'RF source'
+                Driver:
+                    driver = 'teledyneADQ32:TeledyneADQ32'
+                    manufacturer = 'Teledyne SP Devices'
+                    model = 'ADQ32'
                     
                                        
             Drivers:
@@ -160,6 +164,11 @@ enamldef QcircuitsManifest(PluginManifest):
             Tasks:
                 path = 'instr'
                 group = 'instr'
+                Task:
+                    task = 'teledyne_alazar_tasks:DemodTeledyneAlazarTask'
+                    view = 'views.teledyne_alazar_views:DemodTeledyneAlazarView'
+                    instruments = ['exopy_qcircuits.Qcircuits.TeledyneADQ32',
+                                   'exopy_qcircuits.Qcircuits.Alazar935x']
                 Task:
                     task = 'RFpulsed_task:SetRFPulsedTask'
                     view = 'views.RFpulsed_views:SetRFPulsedView'
