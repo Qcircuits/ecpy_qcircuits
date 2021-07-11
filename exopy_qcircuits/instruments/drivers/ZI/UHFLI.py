@@ -10,7 +10,7 @@ Python package zhinst from Zurick Instruments need to be install
 
 from __future__ import (division, unicode_literals, print_function,
                         absolute_import)
-from ..driver_tools import (InstrIOError, instrument_property,
+from exopy_hqc_legacy.instruments.drivers.driver_tools import (InstrIOError, instrument_property,
                             secure_communication)
 import sys
 from subprocess import call

@@ -19,7 +19,7 @@ from exopy.tasks.api import InstrumentTask
 from atom.api import (Str,Enum,Typed)
 from exopy.utils.atom_util import ordered_dict_from_pref, ordered_dict_to_pref
 from collections import OrderedDict
-from exopy_qcircuits.instruments.drivers.visa_tools import InstrIOError
+from exopy_hqc_legacy.instruments.drivers.visa_tools import InstrIOError
 
 
 class AWGSetDCOffsetTask(InstrumentTask):
