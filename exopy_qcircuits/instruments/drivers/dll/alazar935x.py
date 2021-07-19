@@ -24,6 +24,7 @@ import os
 from inspect import cleandoc
 
 import numpy as np
+from numba import njit
 import math
 import time
 import logging
@@ -38,8 +39,6 @@ except (FileNotFoundError, OSError):
     logger.info("Couldn't find the Alazar DLL, please install the driver "
                 "if you want to use it.")
 
-from numba import njit
-from math import ceil
 
 @njit
 def demodulate(record, cosine, sine, I_arr, Q_arr):
@@ -1156,7 +1155,7 @@ class Alazar935x(DllInstrument):
             not average: structured array of demodulated power. Format: dm['WX_Y'] or dm['WX'] where W = A or B (channel), X is the raw trace number and Y the timestep number (if any).
             average: structured array of demodulated power. Format: dm['WX_Y'] or dm['WX'] where W = A or B (channel), X is the raw trace number and Y the timestep number (if any).
         """
-        nof_buffers = int(ceil(nof_records / records_per_buf))
+        nof_buffers = int(math.ceil(nof_records / records_per_buf))
 
         N_trace_A = len(trace_A)
         N_trace_B = len(trace_B)
