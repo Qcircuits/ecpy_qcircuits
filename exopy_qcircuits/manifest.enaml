@@ -165,10 +165,15 @@ enamldef QcircuitsManifest(PluginManifest):
                 path = 'instr'
                 group = 'instr'
                 Task:
-                    task = 'teledyne_alazar_tasks:DemodTeledyneAlazarTask'
-                    view = 'views.teledyne_alazar_views:DemodTeledyneAlazarView'
-                    instruments = ['exopy_qcircuits.Qcircuits.TeledyneADQ32',
-                                   'exopy_qcircuits.Qcircuits.Alazar935x']
+                    task = 'rtacquisition_tasks:RealTimeAcquisitionTask'
+                    view = 'views.rtacquisition_views:RealTimeAcquisitionView'
+                    instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
+                    Interface:
+                        interface = 'rtacquisition_tasks:TeledyneInterface'
+                        views = ['views.rtacquisition_views:ITeledyneSamplingLabel', 
+                                 'views.rtacquisition_views:ITeledyneSamplingValue']
+                        instruments = ['exopy_qcircuits.Qcircuits.TeledyneADQ32']
+
                 Task:
                     task = 'RFpulsed_task:SetRFPulsedTask'
                     view = 'views.RFpulsed_views:SetRFPulsedView'

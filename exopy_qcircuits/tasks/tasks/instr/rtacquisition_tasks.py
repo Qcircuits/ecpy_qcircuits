@@ -1,20 +1,21 @@
 import numbers
 from os import times
 import traceback
+from exopy.tasks.tasks.task_interface import TaskInterface
 import numpy as np
 from inspect import cleandoc
 from math import ceil, log2
 
 from atom.api import Bool, Str, Enum, set_default
 
-from exopy.tasks.api import InstrumentTask, validators
+from exopy.tasks.api import InstrumentTask, InterfaceableTaskMixin, validators
 from numpy.core.records import record
 
 VAL_REAL = validators.Feval(types=numbers.Real)
 
 VAL_INT = validators.Feval(types=numbers.Integral)
 
-class DemodTeledyneAlazarTask(InstrumentTask):
+class RealTimeAcquisitionTask(InterfaceableTaskMixin, InstrumentTask):
     """ Get the raw or averaged quadratures of the signal.
         Can also get raw or averaged traces of the signal.
         Power demodulation (signal squaring) and custom
@@ -26,7 +27,7 @@ class DemodTeledyneAlazarTask(InstrumentTask):
     trigger_level    = Str('1.0').tag(pref=True, feval=VAL_REAL)
     enable_aux_trig  = Bool(False).tag(pref=True)
     defer_process    = Bool(False).tag(pref=True)
-    sampling_freq    = Enum('2500','1250', '625').tag(pref=True) # TODO: driver-dependent possible values (Teledyne: [2500, 1250, 625], Alazar: [500, 250, 125]?)
+    sampling_freq    = Str('500').tag(pref=True) # Default for Alazar, overriden by task interface
     timeout          = Str('1000').tag(pref=True)
     trace_start_A    = Str('0').tag(pref=True)
     trace_start_B    = Str('0').tag(pref=True)
@@ -167,8 +168,8 @@ class DemodTeledyneAlazarTask(InstrumentTask):
             for i, ((demod_start, demod_duration, demod_freq), timestep) in enumerate(zip(demod[ch], timesteps[ch])):
                 if demod_duration % timestep != 0:
                     test = False
-                    traceback[traceback_root] = cleandoc(f'IQ time step {i} ({timestep} ns) must divide '
-                                                         f'demodulation duration {i} ({demod_duration} ns).')
+                    traceback[traceback_root] = cleandoc(f'IQ time step {i} ({timestep/samples_per_ns} ns) must divide '
+                                                         f'demodulation duration {i} ({demod_duration/samples_per_ns} ns).')
 
         record_length = [0, 0]
         offset_start  = [0, 0]
@@ -211,20 +212,20 @@ class DemodTeledyneAlazarTask(InstrumentTask):
                     test = False
                     traceback[traceback_root+'-demod_time_step_duration'] = cleandoc(f'All demodulation time steps must divide the demodulation'
                                                                                      f' duration. A time step of {timestep/samples_per_ns} ns '
-                                                                                     f'is incompatible with a duration of {duration} ns.')
+                                                                                     f'is incompatible with a duration of {duration/samples_per_ns} ns.')
                 if abs(timestep/period - round(timestep/period)) > 1e-6:
                     test = False
                     traceback[traceback_root+'-demod_time_step_period'] = cleandoc(f'All demodulation periods must divide IQ time steps. A period of'
-                                                                                   f' {period} ns is incompatible with a time step of {duration} ns.')
+                                                                                   f' {period/samples_per_ns} ns is incompatible with a time step of {duration/samples_per_ns} ns.')
                 period = timestep / round(timestep/period)
                 if len(custom_demod_cos) and len(custom_demod_sin):
                     if len(custom_demod_cos) != len(custom_demod_sin):
                         test = False
                         traceback[traceback_root+'-demod_cos_sin_npoints_mismatch'] = cleandoc('Custom demodulation "cos" and "sin" must have the same length.')
-                    if len(custom_demod_cos) != duration:
+                    if len(custom_demod_cos) < duration:
                         test = False
-                        traceback[traceback_root+'-demod_function_npoints_mismatch_duration'] = cleandoc(f'Custom demodulation functions (points each) must match demodulation duration'
-                                                                                                         f' #{i} for channel {"AB"[ch]} ({duration} ns = {duration/0.4} samples).')
+                        traceback[traceback_root+'-demod_function_npoints_mismatch_duration'] = cleandoc(f'Custom demodulation functions ({len(custom_demod_cos)} points each) have fewer values than demodulation duration'
+                                                                                                         f' #{i} for channel {"AB"[ch]} ({duration/samples_per_ns} ns = {duration} samples @ {sampling_freq} MS/s).')
                     cos_func = (custom_demod_cos[:duration]*(2**15-1) / np.max(np.abs(custom_demod_cos[:duration]))).tolist()
                     sin_func = (custom_demod_sin[:duration]*(2**15-1) / np.max(np.abs(custom_demod_sin[:duration]))).tolist()
                 else:
@@ -297,7 +298,7 @@ class DemodTeledyneAlazarTask(InstrumentTask):
 
         return test, traceback
 
-    def perform(self):
+    def i_perform(self):
         """
         """
         test, ret = self.parse_inputs(test = True, traceback = {}, traceback_root = '')
@@ -340,3 +341,17 @@ class DemodTeledyneAlazarTask(InstrumentTask):
         self.write_in_database('Trace', tr)
         self.write_in_database('Demod', dm)
         self.write_in_database('Power', pw)
+
+
+class TeledyneInterface(TaskInterface):
+    sampling_freq = Enum('2500','1250', '625').tag(pref=True)
+    
+    def check(self, *args, **kwargs):
+        self.task.sampling_freq = self.sampling_freq
+
+        return True, {}
+
+    def perform(self, *args, **kwargs):
+        self.task.sampling_freq = self.sampling_freq
+
+        return self.task.i_perform(*args, **kwargs)
