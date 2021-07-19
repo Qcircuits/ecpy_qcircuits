@@ -24,6 +24,7 @@ import os
 from inspect import cleandoc
 
 import numpy as np
+from numba import njit
 import math
 import time
 import logging
@@ -39,6 +40,57 @@ except (FileNotFoundError, OSError):
                 "if you want to use it.")
 
 
+@njit
+def demodulate(record, cosine, sine, I_arr, Q_arr):
+    i, j = 0, 0
+    while i < len(record): # for i in range(NOF_RECORDS_PER_BUFFER)
+        j = 0
+        while j < len(record[0]): # for j in range(record_length)
+            I_arr[i, 0] += record[i,j]*cosine[j]
+            Q_arr[i, 0] += record[i,j]*sine[j]
+            j += 1
+        i += 1
+
+@njit
+def demodulate_tstep(record, cosine, sine, timestep, I_arr, Q_arr):
+    i, j, div, mod = 0, 0, 0, 0 # div, mod = j // timestep, j % timestep
+    while i < len(record): # for i in range(NOF_RECORDS_PER_BUFFER)
+        j, div, mod = 0, 0, 0
+        while j < len(record[0]): # for j in range(record_length)
+            if mod == timestep:
+                div += 1
+                mod = 0
+            I_arr[i, div] += record[i,j]*cosine[j]
+            Q_arr[i, div] += record[i,j]*sine[j]
+            j += 1
+            mod += 1
+        i += 1
+
+@njit
+def demodulate_power(record, cosine_sq, sine_sq, I_arr, Q_arr):
+    i, j = 0, 0
+    while i < len(record): # for i in range(NOF_RECORDS_PER_BUFFER)
+        j = 0
+        while j < len(record[0]): # for j in range(record_length)
+            I_arr[i, 0] += (record[i,j]**2) * cosine_sq[j]
+            Q_arr[i, 0] += (record[i,j]**2) * sine_sq[j]
+            j += 1
+        i += 1
+
+@njit
+def demodulate_power_tstep(record, cosine_sq, sine_sq, timestep, I_arr, Q_arr):
+    i, j, div, mod = 0, 0, 0, 0 # div, mod = j // timestep, j % timestep
+    while i < len(record): # for i in range(NOF_RECORDS_PER_BUFFER)
+        j, div, mod = 0, 0, 0
+        while j < len(record[0]): # for j in range(record_length)
+            if mod == timestep:
+                div += 1
+                mod = 0
+            I_arr[i, div] += (record[i,j]**2) * cosine_sq[j]
+            Q_arr[i, div] += (record[i,j]**2) * sine_sq[j]
+            j += 1
+            mod += 1
+        i += 1
 
 class DMABuffer:
     '''Buffer suitable for DMA transfers.
@@ -981,3 +1033,551 @@ class Alazar935x(DllInstrument):
                         answerFFTphase[Tracestring][:,:samplesPerDemod[i]//2+1] = np.angle(spectrum)
                      
         return answerFFT,answerFreq,answerFFTpower,answerFFTphase
+
+    def configure_board_irt(self, sampling_freq, trigger_level, active_channels, record_length,
+                                  nof_records_tot, records_per_buf, offset_start):
+        board = self.board
+        trigger_range = 5
+        samples_per_sec = float(sampling_freq) * 1_000_000 # sampling_freq in MS/s
+
+        self.INPUT_RANGE = 400 # mV
+        self.CODE_TO_V   = (self.INPUT_RANGE / 1000) / 2**15
+
+        if not self.clock_set:
+            board.setCaptureClock(ats.EXTERNAL_CLOCK_10MHz_REF,
+                                  500000000,
+                                  ats.CLOCK_EDGE_RISING,
+                                  0)
+
+            self.clock_set = True
+
+            board.inputControl(ats.CHANNEL_A,
+                               ats.DC_COUPLING,
+                               ats.INPUT_RANGE_PM_400_MV,
+                               ats.IMPEDANCE_50_OHM)
+
+            board.setBWLimit(ats.CHANNEL_A, 0)
+
+            board.inputControl(ats.CHANNEL_B,
+                               ats.DC_COUPLING,
+                               ats.INPUT_RANGE_PM_400_MV,
+                               ats.IMPEDANCE_50_OHM)
+
+            board.setBWLimit(ats.CHANNEL_B, 0)
+
+            trigger_code = int(128 + 127 * trigger_level / trigger_range)
+            board.setTriggerOperation(ats.TRIG_ENGINE_OP_J,
+                                      ats.TRIG_ENGINE_J,
+                                      ats.TRIG_EXTERNAL,
+                                      ats.TRIGGER_SLOPE_POSITIVE,
+                                      trigger_code,
+                                      ats.TRIG_ENGINE_K,
+                                      ats.TRIG_DISABLE,
+                                      ats.TRIGGER_SLOPE_POSITIVE,
+                                      128)
+
+            if trigger_range == 5:
+                board.setExternalTrigger(ats.DC_COUPLING,
+                                         ats.ETR_5V)
+            else:
+                board.setExternalTrigger(ats.DC_COUPLING,
+                                         ats.ETR_2V5)
+
+            trigger_delay_sec = offset_start / samples_per_sec
+            trigger_delay_samples = int(trigger_delay_sec * samples_per_sec + 0.5)
+            board.setTriggerDelay(trigger_delay_samples)
+            board.setTriggerTimeOut(0)
+            board.configureAuxIO(ats.AUX_OUT_TRIGGER, 0)
+
+    def get_demod_irt(self, trace_A, trace_B, demod_A, demod_B, power_A, power_B,
+                            tstep_A, tstep_B, cos_1, sin_1, cos_2, sin_2,
+                            defer_process, average, nof_experiments, nof_records,
+                            record_length, records_per_buf, enable_aux_trig,
+                            timeout, active_channels, bit_shifts):
+        """Handle raw trace recording and/or voltage/power demodulation.
+        
+        Parameters
+        ----------
+        trace_A: list
+            List of (start, duration) sequences where "duration" must be strictly positive. All values are given in samples.
+        trace_B: list
+            List of (start, duration) sequences where "duration" must be strictly positive. All values are given in samples.
+        demod_A: list
+            List of (start, duration, freq) sequences where "duration" must be strictly positive. All values are given in samples.
+        demod_B: list
+            List of (start, duration, freq) sequences where "duration" must be strictly positive. All values are given in samples.
+        power_A: bool
+            If True, power demodulation (from squared signal) is computed.
+        power_B: bool
+            If True, power demodulation (from squared signal) is computed.
+        tstep_A: list
+            List of timestep values in samples (one value per element in trace_A).
+        tstep_B: list
+            List of timestep values in samples (one value per element in trace_B).
+        cos_1: list
+            List of two lists giving cos (or custom cos) int16 values for each channel (A and B).
+        sin_1: list
+            List of two lists giving sin (or custom sin) int16 values for each channel (A and B).
+        cos_2: list
+            List of two lists giving cos² (or custom cos²) uint16 (defer_process == False) or float32 (defer_process == True) values for each channel (A and B).
+        sin_2: list
+            List of two lists giving cos² (or custom cos²) uint16 (defer_process == False) or float32 (defer_process == True) values for each channel (A and B).
+        defer_process: bool
+            If True, raw data is saved to be processed after its acquisition.
+        average: bool
+            Average multiple repetitions of the same experiments.
+        nof_experiments: int
+            Number of points returned when average == True.
+        nof_records:
+            Number of individual records.
+        record_length: int
+            Number of samples per record.
+        records_per_buf:
+            Number of records per memory buffer.
+        enable_aux_trig:
+            If True, the card will send a 100ms 5V pulse on its AUX GPIO port whenever it is ready to start capturing data or is done capturing data.
+        timeout: int
+            Positive timeout in ms passed to WaitForP2pBuffers.
+        active_channels: list
+            List of active channels indices (0 for channel A, 1 for channel B).
+        bit_shifts:
+            List of two lists giving cos² and sin² loss of precision (in bits) required to avoid overflows. Only used if defer_process == False.
+
+        Returns
+        -------
+        tr:
+            not average: structured array of raw traces. Format: tr['WXXXX'] where W = A or B (channel) and XXXX is the raw trace number.
+            average: structured array of averaged raw traces. Format: tr['WXXXX'] where W = A or B (channel) and XXXX is the raw trace number.
+        dm:
+            not average: structured array of demodulated data. Format: dm['WXY_Z'] or dm['WXY'] where W = A or B (channel), X = I or Q (phase), Y is the raw trace number and Z the timestep number (if any).
+            average: structured array of demodulated data. Format: dm['WXY_Z'] or dm['WXY'] where W = A or B (channel), X = I or Q (phase), Y is the raw trace number and Z the timestep number (if any).
+        pw:
+            not average: structured array of demodulated power. Format: dm['WX_Y'] or dm['WX'] where W = A or B (channel), X is the raw trace number and Y the timestep number (if any).
+            average: structured array of demodulated power. Format: dm['WX_Y'] or dm['WX'] where W = A or B (channel), X is the raw trace number and Y the timestep number (if any).
+        """
+        nof_buffers = int(math.ceil(nof_records / records_per_buf))
+
+        N_trace_A = len(trace_A)
+        N_trace_B = len(trace_B)
+        N_demod_A = len(demod_A)
+        N_demod_B = len(demod_B)
+
+        trace = [trace_A, trace_B]
+        demod = [demod_A, demod_B]
+        power = [power_A, power_B]
+        tstep = [tstep_A, tstep_B]
+
+        I_tot    = [[], []]
+        Q_tot    = [[], []]
+        I_tot_sq = [[], []]
+        Q_tot_sq = [[], []]
+        raw_data = [[], []]
+
+        trace_start_ch    = [[start    for start, duration       in trace_ch] for trace_ch in trace] # Per channel
+        trace_duration_ch = [[duration for start, duration       in trace_ch] for trace_ch in trace] # Per channel
+        demod_start_ch    = [[start    for start, duration, freq in demod_ch] for demod_ch in demod] # Per channel
+        demod_duration_ch = [[duration for start, duration, freq in demod_ch] for demod_ch in demod] # Per channel
+        demod_freq_ch     = [[freq     for start, duration, freq in demod_ch] for demod_ch in demod] # Per channel
+
+        trace_start_fl    = trace_start_ch[0]    + trace_start_ch[1]                                 # Flat
+        trace_duration_fl = trace_duration_ch[0] + trace_duration_ch[1]                              # Flat
+        demod_start_fl    = demod_start_ch[0]    + demod_start_ch[1]                                 # Flat
+        demod_duration_fl = demod_duration_ch[0] + demod_duration_ch[1]                              # Flat
+        demod_freq_fl     = demod_freq_ch[0]     + demod_freq_ch[1]                                  # Flat
+
+        tstep_fl = []
+        for tstep_ch in tstep:
+            tstep_fl += tstep_ch
+
+        for ch in active_channels:
+            if average and nof_experiments == 1:
+                I_tot[ch]    = [np.zeros(duration // tstep[ch][i], dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                Q_tot[ch]    = [np.zeros(duration // tstep[ch][i], dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                I_tot_sq[ch] = [np.zeros(duration // tstep[ch][i], dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                Q_tot_sq[ch] = [np.zeros(duration // tstep[ch][i], dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                raw_data[ch] = [np.zeros((duration,), dtype=np.int64) for start, duration in trace[ch]]
+            elif average:
+                I_tot[ch]    = [np.zeros((nof_experiments, duration // tstep[ch][i]), dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                Q_tot[ch]    = [np.zeros((nof_experiments, duration // tstep[ch][i]), dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                I_tot_sq[ch] = [np.zeros((nof_experiments, duration // tstep[ch][i]), dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                Q_tot_sq[ch] = [np.zeros((nof_experiments, duration // tstep[ch][i]), dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                raw_data[ch] = [np.zeros((nof_experiments, duration), dtype=np.int64) for start, duration in trace[ch]]
+            else:
+                I_tot[ch]    = [np.empty((nof_records, duration // tstep[ch][i]), dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                Q_tot[ch]    = [np.empty((nof_records, duration // tstep[ch][i]), dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                I_tot_sq[ch] = [np.empty((nof_records, duration // tstep[ch][i]), dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                Q_tot_sq[ch] = [np.empty((nof_records, duration // tstep[ch][i]), dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                raw_data[ch] = [np.empty((nof_records, duration), dtype=np.int16) for start, duration in trace[ch]]
+
+        compiled = False
+
+        if len(demod_A) or len(demod_B):
+            I_arr = [[], []]
+            Q_arr = [[], []]
+            I_sq  = [[], []]
+            Q_sq  = [[], []]
+
+            for ch in active_channels:
+                if len(demod[ch]):
+                    I_arr[ch] = [np.zeros((records_per_buf, duration // tstep[ch][i]), dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                    Q_arr[ch] = [np.zeros((records_per_buf, duration // tstep[ch][i]), dtype=np.int64)  for i, (start, duration, freq) in enumerate(demod[ch])]
+                    I_sq[ch]  = [np.zeros((records_per_buf, duration // tstep[ch][i]), dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+                    Q_sq[ch]  = [np.zeros((records_per_buf, duration // tstep[ch][i]), dtype=np.uint64) for i, (start, duration, freq) in enumerate(demod[ch])]
+
+                    if not compiled:
+                        compiled = True
+                        demodulate(      np.zeros((records_per_buf, record_length[0]), dtype=np.int16), cos_1[ch][0], sin_1[ch][0],              I_arr[ch][0], Q_arr[ch][0])
+                        demodulate_tstep(np.zeros((records_per_buf, record_length[0]), dtype=np.int16), cos_1[ch][0], sin_1[ch][0], tstep[0][0], I_arr[ch][0], Q_arr[ch][0])
+                        if power[ch]:
+                            demodulate_power(      np.zeros((records_per_buf, record_length[0]), dtype=np.int16), cos_2[ch][0], sin_2[ch][0],              I_sq[ch][0],  Q_sq[ch][0])
+                            demodulate_power_tstep(np.zeros((records_per_buf, record_length[0]), dtype=np.int16), cos_2[ch][0], sin_2[ch][0], tstep[0][0], I_sq[ch][0],  Q_sq[ch][0])
+
+        if defer_process:
+            data_tot   = [np.empty((nof_buffers, records_per_buf, record_length[ch]), dtype=np.int16) for ch in (0, 1)]
+            buf_params = [np.empty((nof_buffers, 4), dtype=np.uint32) for ch in (0, 1)]
+
+        buffers = []
+        bytes_per_sample = 2
+        bytes_per_buffer = bytes_per_sample * max(record_length) * records_per_buf
+        for i in range(nof_buffers):
+            buffers.append(DMABuffer(bytes_per_sample, bytes_per_buffer))
+
+        nof_active_channels = 2 if ((N_demod_A or N_trace_A) and (N_demod_B or N_trace_B)) else 1
+
+        # Set the record size
+        self.board.setRecordSize(0, max(record_length))
+
+        # Configure the number of records in the acquisition
+        self.board.setRecordCount(int(records_per_buf * nof_buffers))
+
+        channelSelect = 1 if not N_demod_B else (2 if not N_demod_A else 3)
+        self.board.beforeAsyncRead(channelSelect, # Channels A & B
+                                   0,
+                                   max(record_length),
+                                   int(records_per_buf),
+                                   int(nof_records),
+                                   ats.ADMA_EXTERNAL_STARTCAPTURE |
+                                   ats.ADMA_NPT)
+
+        # Post DMA buffers to board. ATTENTION it is very important not to do "for buffer in buffers"
+        for i in range(nof_buffers):
+            buffer = buffers[i]
+            self.board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
+
+        self.board.startCapture() # Start the acquisition
+        print("Starting data acquisition")
+
+        # 100ms aux trig pulse
+        if enable_aux_trig:
+            self.board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
+            time.sleep(0.1)
+            self.board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
+
+        try:
+            buffers_completed = 0
+            while buffers_completed < nof_buffers:
+                # Wait for the buffer at the head of the list of
+                # available buffers to be filled by the board.
+                buffer = buffers[buffers_completed % len(buffers)]
+                self.board.waitAsyncBufferComplete(buffer.addr, timeout)
+
+                # Process data
+                buffer_data = np.reshape(buffer.buffer, (records_per_buf*nof_active_channels, -1))
+
+                for i, ch in enumerate(active_channels):
+                    data = buffer_data[i*records_per_buf:(i+1)*records_per_buf,:record_length[ch]]
+
+                    start = records_per_buf *  buffers_completed
+                    stop  = records_per_buf * (buffers_completed+1)
+                    stop2 = records_per_buf
+
+                    # Handle last buffer
+                    if nof_records // records_per_buf == buffers_completed:
+                        stop2 = nof_records % records_per_buf
+                    
+                    records_per_experiment = stop2 // nof_experiments
+
+                    # Save raw data to process later
+                    if defer_process:
+                        data_tot[ch][buffers_completed]     = data
+                        buf_params[ch][buffers_completed,:] = np.array([start, stop, stop2, records_per_experiment])
+                    # Process in real time
+                    else:
+                        # Save raw data according to `trace`
+                        for i, (trace_start, trace_duration) in enumerate(trace[ch]):
+                            all_records = data[:stop2,trace_start:trace_start+trace_duration]
+                            if average and nof_experiments == 1:
+                                raw_data[ch][i] += np.sum(all_records, axis=0)
+                            elif average:
+                                raw_data[ch][i] += np.sum(all_records.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                            else:
+                                raw_data[ch][i][start:stop] = all_records
+
+                        # Demodulate according to `demod[ch]`
+                        for i, (demod_start, demod_duration, demod_freq) in enumerate(demod[ch]):
+                            I_arr[ch][i][:] = 0
+                            Q_arr[ch][i][:] = 0
+                            I_param = I_arr[ch][i][:stop2] # Handle last buffer
+                            Q_param = Q_arr[ch][i][:stop2] # Handle last buffer
+                            if power[ch]:
+                                I_sq[ch][i][:] = 0
+                                Q_sq[ch][i][:] = 0
+                                I_param_sq = I_sq[ch][i][:stop2]
+                                Q_param_sq = Q_sq[ch][i][:stop2]
+                                if tstep[ch][i] == demod_duration:
+                                    demodulate_power(data[:stop2, demod_start:demod_start+demod_duration],
+                                                        cos_2[ch][i][demod_start:demod_start+demod_duration],
+                                                        sin_2[ch][i][demod_start:demod_start+demod_duration],
+                                                        I_param_sq, Q_param_sq)
+                                else:
+                                    demodulate_power_tstep(data[:stop2, demod_start:demod_start+demod_duration],
+                                                            cos_2[ch][i][demod_start:demod_start+demod_duration],
+                                                            sin_2[ch][i][demod_start:demod_start+demod_duration],
+                                                            tstep[ch][i],
+                                                            I_param_sq, Q_param_sq)
+                            if tstep[ch][i] == demod_duration:
+                                demodulate(data[:stop2, demod_start:demod_start+demod_duration],
+                                            cos_1[ch][i][demod_start:demod_start+demod_duration],
+                                            sin_1[ch][i][demod_start:demod_start+demod_duration],
+                                            I_param, Q_param)
+                            else:
+                                demodulate_tstep(data[:stop2, demod_start:demod_start+demod_duration],
+                                                    cos_1[ch][i][demod_start:demod_start+demod_duration],
+                                                    sin_1[ch][i][demod_start:demod_start+demod_duration],
+                                                    tstep[ch][i],
+                                                    I_param, Q_param)
+                            if average and nof_experiments == 1:
+                                I_tot[ch][i] += np.sum(I_param, axis=0)
+                                Q_tot[ch][i] += np.sum(Q_param, axis=0)
+                                if power[ch]:
+                                    I_tot_sq[ch][i] += np.sum(I_param_sq, axis=0)
+                                    Q_tot_sq[ch][i] += np.sum(Q_param_sq, axis=0)
+                            elif average:
+                                I_tot[ch][i] += np.sum(I_param.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                                Q_tot[ch][i] += np.sum(Q_param.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                                if power[ch]:
+                                    I_tot_sq[ch][i] += np.sum(I_param_sq.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                                    Q_tot_sq[ch][i] += np.sum(Q_param_sq.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                            else:
+                                I_tot[ch][i][start:stop] = I_param
+                                Q_tot[ch][i][start:stop] = Q_param
+                                if power[ch]:
+                                    I_tot_sq[ch][i][start:stop] = I_param_sq
+                                    Q_tot_sq[ch][i][start:stop] = Q_param_sq
+                
+                buffers_completed += 1
+
+                self.board.postAsyncBuffer(buffer.addr, buffer.size_bytes)
+
+        except Exception as e:
+            self.board.abortAsyncRead()
+            raise e
+
+        # Stop the data acquisition
+        print("Stopping data acquisition")
+        self.board.abortAsyncRead()
+
+        # 100ms aux trig pulse
+        if enable_aux_trig:
+            self.board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 1)
+            time.sleep(0.1)
+            self.board.configureAuxIO(ats.AUX_OUT_SERIAL_DATA, 0)
+
+        for i in range(nof_buffers):
+            buffer = buffers[i]
+            buffer.__exit__()
+
+        ############################################################################################
+
+        if defer_process:
+            for ch in active_channels:
+                for b in range(len(data_tot[ch])):
+                    data, (start, stop, stop2, records_per_experiment) = data_tot[ch][b], buf_params[ch][b]
+                    for i, (trace_start, trace_duration) in enumerate(trace[ch]):
+                        all_records = data[:stop2,trace_start:trace_start+trace_duration]
+                        if average and nof_experiments == 1:
+                            raw_data[ch][i] += np.sum(all_records, axis=0)
+                        elif average:
+                            raw_data[ch][i] += np.sum(all_records.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                        else:
+                            raw_data[ch][i][start:stop] = all_records
+
+                    # Demodulate according to `demod[ch]`
+                    for i, (demod_start, demod_duration, demod_freq) in enumerate(demod[ch]):
+                        I_arr[ch][i][:] = 0
+                        Q_arr[ch][i][:] = 0
+                        I_param = I_arr[ch][i][:stop2] # Handle last buffer
+                        Q_param = Q_arr[ch][i][:stop2] # Handle last buffer
+                        if power[ch]:
+                            I_sq[ch][i][:] = 0
+                            Q_sq[ch][i][:] = 0
+                            I_param_sq = I_sq[ch][i][:stop2]
+                            Q_param_sq = Q_sq[ch][i][:stop2]
+                            if tstep[ch][i] == demod_duration:
+                                demodulate_power(data[:stop2, demod_start:demod_start+demod_duration],
+                                                 cos_2[ch][i][demod_start:demod_start+demod_duration],
+                                                 sin_2[ch][i][demod_start:demod_start+demod_duration],
+                                                 I_param_sq, Q_param_sq)
+                            else:
+                                demodulate_power_tstep(data[:stop2, demod_start:demod_start+demod_duration],
+                                                       cos_2[ch][i][demod_start:demod_start+demod_duration],
+                                                       sin_2[ch][i][demod_start:demod_start+demod_duration],
+                                                        tstep[ch][i],
+                                                       I_param_sq, Q_param_sq)
+                        if tstep[ch][i] == demod_duration:
+                            demodulate(data[:stop2, demod_start:demod_start+demod_duration],
+                                       cos_1[ch][i][demod_start:demod_start+demod_duration],
+                                       sin_1[ch][i][demod_start:demod_start+demod_duration],
+                                       I_param, Q_param)
+                        else:
+                            demodulate_tstep(data[:stop2, demod_start:demod_start+demod_duration],
+                                             cos_1[ch][i][demod_start:demod_start+demod_duration],
+                                             sin_1[ch][i][demod_start:demod_start+demod_duration],
+                                             tstep[ch][i],
+                                             I_param, Q_param)
+                        if average and nof_experiments == 1:
+                            I_tot[ch][i] += np.sum(I_param, axis=0)
+                            Q_tot[ch][i] += np.sum(Q_param, axis=0)
+                            if power[ch]:
+                                I_tot_sq[ch][i] += np.sum(I_param_sq, axis=0)
+                                Q_tot_sq[ch][i] += np.sum(Q_param_sq, axis=0)
+                        elif average:
+                            I_tot[ch][i] += np.sum(I_param.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                            Q_tot[ch][i] += np.sum(Q_param.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                            if power[ch]:
+                                I_tot_sq[ch][i] += np.sum(I_param_sq.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                                Q_tot_sq[ch][i] += np.sum(Q_param_sq.reshape((records_per_experiment, nof_experiments, -1)), axis=0)
+                        else:
+                            I_tot[ch][i][start:stop] = I_param
+                            Q_tot[ch][i][start:stop] = Q_param
+                            if power[ch]:
+                                I_tot_sq[ch][i][start:stop] = I_param_sq
+                                Q_tot_sq[ch][i][start:stop] = Q_param_sq
+
+        ############################################################################################
+
+        print("Normalizing and converting")
+        IQ_tot    = [I_tot,    Q_tot]
+        IQ_tot_sq = [I_tot_sq, Q_tot_sq]
+        for ch in active_channels:
+            for i, (demod_start, demod_duration, demod_freq) in enumerate(demod[ch]):
+                for iq in (0, 1):
+                    if average:
+                        IQ_tot[iq][ch][i] = 2 * self.CODE_TO_V * np.float32(IQ_tot[iq][ch][i]) / tstep[ch][i] / nof_records / 2**15
+                        if power[ch] and defer_process:
+                            IQ_tot_sq[iq][ch][i] = 4 * self.CODE_TO_V**2 * np.float32(IQ_tot_sq[iq][ch][i]) / tstep[ch][i] / nof_records / (2**15)**2
+                        elif power[ch]:
+                            IQ_tot_sq[iq][ch][i] = 4 * self.CODE_TO_V**2 * np.float32(IQ_tot_sq[iq][ch][i]) / tstep[ch][i] / nof_records / (2**15)**2 * 2**bit_shifts[ch][i]
+                    else:
+                        IQ_tot[iq][ch][i] = 2 * self.CODE_TO_V * np.float32(IQ_tot[iq][ch][i]) / tstep[ch][i] / 2**15
+                        if power[ch] and defer_process:
+                            IQ_tot_sq[iq][ch][i] = 4 * self.CODE_TO_V**2 * np.float32(IQ_tot_sq[iq][ch][i]) / tstep[ch][i] / (2**15)**2
+                        elif power[ch]:
+                            IQ_tot_sq[iq][ch][i] = 4 * self.CODE_TO_V**2 * np.float32(IQ_tot_sq[iq][ch][i]) / tstep[ch][i] / (2**15)**2 * 2**bit_shifts[ch][i]
+            for i, (trace_start, trace_duration) in enumerate(trace[ch]):
+                raw_data[ch][i] = np.float32(raw_data[ch][i])
+                if average:
+                    raw_data[ch][i] *= self.CODE_TO_V/nof_records
+                else:
+                    raw_data[ch][i] *= self.CODE_TO_V
+        
+        I_tot,    Q_tot    = IQ_tot
+        I_tot_sq, Q_tot_sq = IQ_tot_sq
+        max_trace_duration = 0
+        type_trace         = 'f'
+        type_demod         = 'f'
+        type_power         = 'f'
+
+        if len(demod_A) or len(demod_B):
+            type_demod = []
+            type_power = []
+            nof_steps  = [int(demod_duration_fl[i]/tstep_fl[i] if tstep_fl[i] else 1) for i in range(N_demod_A + N_demod_B)]
+            for i in range(N_demod_A + N_demod_B):
+                if i < N_demod_A:
+                    char, j = 'A', i
+                    index = str(j).zfill(1 + int(np.floor(np.log10(N_demod_A))))
+                else:
+                    char, j = 'B', i - N_demod_A
+                    index = str(j).zfill(1 + int(np.floor(np.log10(N_demod_B))))
+                zeros_step = 1 + int(np.floor(np.log10(nof_steps[i])))
+                for t in range(nof_steps[i]):
+                    iindex = index
+                    if nof_steps[i] > 1:
+                        iindex = index + '_' + str(t).zfill(zeros_step)
+                    type_demod += [(char + 'I' + iindex, 'f'),
+                                   (char + 'Q' + iindex, 'f')]
+                    type_power += [(char    +    iindex, 'f')]
+
+        if len(trace_A) or len(trace_B):
+            zeros_trace_A = 1 + int(np.floor(np.log10(N_trace_A))) if N_trace_A else 0
+            zeros_trace_B = 1 + int(np.floor(np.log10(N_trace_B))) if N_trace_B else 0
+            type_trace    = ([('A' + str(i).zfill(zeros_trace_A), 'f') for i in range(N_trace_A)]
+                          +  [('B' + str(i).zfill(zeros_trace_B), 'f') for i in range(N_trace_B)])
+            max_trace_duration = np.max([duration for start, duration in [*trace_A, *trace_B]])
+
+        if average and nof_experiments == 1:
+            tr = np.zeros(max_trace_duration, dtype=type_trace)
+            dm = np.zeros(1, dtype=type_demod)
+            pw = np.zeros(1, dtype=type_power)
+        elif average:
+            tr = np.zeros((max_trace_duration, nof_experiments), dtype=type_trace)
+            dm = np.zeros((1, nof_experiments), dtype=type_demod)
+            pw = np.zeros((1, nof_experiments), dtype=type_power)
+        else:
+            tr = np.zeros((nof_records, max_trace_duration), dtype=type_trace)
+            dm = np.zeros( nof_records, dtype=type_demod)
+            pw = np.zeros( nof_records, dtype=type_power)
+
+        for i in np.arange(N_demod_A + N_demod_B):
+            ch = (i >= N_demod_A)
+            if ch == 0:
+                dem = i
+                char = 'A'
+                index = str(dem).zfill(1 + int(np.floor(np.log10(N_demod_A))))
+            else:
+                dem = i - N_demod_A
+                char = 'B'
+                index = str(dem).zfill(1 + int(np.floor(np.log10(N_demod_A))))
+            zeros_step = 1 + int(np.floor(np.log10(nof_steps[i])))
+            for tstp in range(nof_steps[i]):
+                iindex = index
+                if nof_steps[i] > 1:
+                    iindex = index + '_' + str(tstp).zfill(zeros_step)
+                if average and nof_experiments == 1:
+                    dm[char + 'I' + iindex] = I_tot[ch][dem][tstp]
+                    dm[char + 'Q' + iindex] = Q_tot[ch][dem][tstp]
+                    if power[ch]:
+                        pw[char + iindex] = I_tot_sq[ch][dem][tstp] + Q_tot_sq[ch][dem][tstp]
+                elif average:
+                    dm[char + 'I' + iindex] = I_tot[ch][dem][:,tstp]
+                    dm[char + 'Q' + iindex] = Q_tot[ch][dem][:,tstp]
+                    if power[ch]:
+                        pw[char + iindex] = I_tot_sq[ch][dem][tstp] + Q_tot_sq[ch][dem][tstp]
+                else:
+                    dm[char + 'I' + iindex] = np.array(I_tot[ch][dem])[:,tstp]
+                    dm[char + 'Q' + iindex] = np.array(Q_tot[ch][dem])[:,tstp]
+                    if power[ch]:
+                        pw[char + iindex] = np.array(I_tot_sq[ch][dem])[:,tstp] + np.array(Q_tot_sq[ch][dem])[:,tstp]
+
+        for i in np.arange(N_trace_A + N_trace_B):
+            k = i + N_demod_A + N_demod_B
+            ch = (i >= N_trace_A)
+
+            if ch == 0:
+                curr_trace = i
+                trace_id = 'A' + str(curr_trace).zfill(zeros_trace_A)
+            else:
+                curr_trace = i - N_trace_A
+                trace_id = 'B' + str(curr_trace).zfill(zeros_trace_B)
+
+            if average and nof_experiments == 1:
+                # shape: (max_trace_duration)
+                tr[trace_id][:trace_duration_fl[i]] = raw_data[ch][curr_trace]
+            elif average:
+                # shape: (max_trace_duration, nof_experiments)
+                tr[trace_id][:trace_duration_fl[i],:] = raw_data[ch][curr_trace].T
+            else:
+                # shape: (nof_records, max_trace_duration)
+                tr[trace_id][:,:trace_duration_fl[i]] = raw_data[ch][curr_trace]
+
+        return tr, dm, pw

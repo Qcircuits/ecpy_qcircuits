@@ -87,6 +87,10 @@ enamldef QcircuitsManifest(PluginManifest):
                     manufacturer = 'LabBrick'
                     model = 'LMS103'
                     kind = 'RF source'
+                Driver:
+                    driver = 'teledyneADQ32:TeledyneADQ32'
+                    manufacturer = 'Teledyne SP Devices'
+                    model = 'ADQ32'
                     
                                        
             Drivers:
@@ -160,6 +164,16 @@ enamldef QcircuitsManifest(PluginManifest):
             Tasks:
                 path = 'instr'
                 group = 'instr'
+                Task:
+                    task = 'rtacquisition_tasks:RealTimeAcquisitionTask'
+                    view = 'views.rtacquisition_views:RealTimeAcquisitionView'
+                    instruments = ['exopy_qcircuits.Qcircuits.Alazar935x']
+                    Interface:
+                        interface = 'rtacquisition_tasks:TeledyneInterface'
+                        views = ['views.rtacquisition_views:ITeledyneSamplingLabel', 
+                                 'views.rtacquisition_views:ITeledyneSamplingValue']
+                        instruments = ['exopy_qcircuits.Qcircuits.TeledyneADQ32']
+
                 Task:
                     task = 'RFpulsed_task:SetRFPulsedTask'
                     view = 'views.RFpulsed_views:SetRFPulsedView'

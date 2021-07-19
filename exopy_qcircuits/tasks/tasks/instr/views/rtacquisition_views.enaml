@@ -1,0 +1,255 @@
+from __future__ import (division, unicode_literals, print_function,
+                        absolute_import)
+
+from inspect import cleandoc
+from textwrap import fill
+
+from enaml.core.api import Conditional, Include
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, CheckBox,
+                               Container)
+from enaml.layout.api import grid, vbox, hbox, factory
+
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from ...base_instr_view import InstrView
+
+
+enamldef RealTimeAcquisitionView(InstrView): view:
+
+    constraints << [vbox(
+                    grid([instr_label,     *i_views[::2],  traces,     timeout,     deferProcess,     average,     averaging,     trigLevel,     enableAuxTrig],
+                         [instr_selection, *i_views[1::2], traces_val, timeout_val, deferProcess_val, average_val, averaging_val, trigLevel_val, enableAuxTrig_val]),
+                    hbox(demodA, demodB),
+                    hbox(traceA, traceB),
+                    customDemod),
+                    averaging.width == traces_val.width,
+                    demodA.width == demodB.width,
+                    traceA.width == traceB.width,
+                    customDemodCos.width == customDemodSin.width]
+
+    Label: traces:
+        text = 'Number of traces'
+    QtLineCompleter: traces_val:
+            text := task.nof_records
+            entries_updater << task.list_accessible_database_entries
+
+    Label: timeout:
+        text = 'Buffer timeout (ms)'
+    QtLineCompleter: timeout_val:
+            text := task.timeout
+
+    Label: deferProcess:
+        text = 'Defer processing'
+    CheckBox: deferProcess_val:
+        checked := task.defer_process
+
+    Label: average:
+        text = 'Average'
+    CheckBox: average_val:
+        checked := task.average
+
+    Container: averaging:
+        padding = 0
+        Conditional:
+            condition << average_val.checked
+            Label:
+                text = 'Number of returned points'
+
+    Container: averaging_val:
+        padding = 0
+        Conditional:
+            condition << average_val.checked
+            Field:
+                text := task.nof_experiments
+
+    Label: trigLevel:
+        text = 'Trigger level (V)'
+    Field: trigLevel_val:
+        text := task.trigger_level
+
+    Label: enableAuxTrig:
+        text = 'AUX trigger'
+    CheckBox: enableAuxTrig_val:
+        checked := task.enable_aux_trig
+        tool_tip = fill(cleandoc(
+                        '''When this is checked, the Teledyne SP Devices card will send a 100ms 5V pulse on its
+                        AUX GPIO port whenever it is ready to start capturing data or is done capturing data'''))
+
+
+    GroupBox: demodA:
+        title = 'Channel A demodulation settings'
+        constraints = [grid([after, duration, dfreq, samplingtime,powerA],
+                            [after_val, duration_val, dfreq_val, samplingtime_val,powerA_val]),
+                       dfreq_val.width == after_val.width,
+                       after_val.width == duration_val.width,
+                       powerA_val.width == dfreq_val.width/2]
+        Label: dfreq:
+            text = 'Frequency (MHz)'
+        Field: dfreq_val:
+            text := task.demod_freq_A
+            tool_tip = fill(cleandoc(
+                            '''Separate the demodulation frequencies with commas or enter a Python formula.
+                            — You can specify a unique demodulation frequency if it's the same for every demodulation.'''))
+
+        Label: after:
+            text = 'Start time after trigger (ns)'
+        Field: after_val:
+            text := task.demod_start_A
+            tool_tip = fill(cleandoc(
+                            '''Separate the start times with commas or enter a Python formula.
+                            For example: 0,500,1000 or np.linspace(0,1000,3)'''))
+
+        Label: duration:
+            text = 'Duration (ns)'
+        QtLineCompleter: duration_val:
+            text := task.demod_duration_A
+            entries_updater << task.list_accessible_database_entries
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Demodulation
+                            on channel A will be disabled if one of the durations is set to zero.
+                            — Note that data acquisition by channel A will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel B speed.'''))
+
+        Label: samplingtime:
+            text = 'IQ time step (ns)'
+        Field: samplingtime_val:
+            text := task.timesteps_A
+            tool_tip = fill(cleandoc(
+                            '''Acquire the IQ values with temporal resolution.
+                            Separate the time steps with commas or enter a Python formula.
+                            — You can specify a unique time step if it's the same for every demodulation.
+                            — 0 corresponds to one IQ per trace.'''))
+        Label: powerA:
+            text = 'Power'
+        CheckBox: powerA_val:
+            checked := task.power_A
+            
+    GroupBox: demodB:
+        title = 'Channel B demodulation settings'
+        constraints = [grid([afterB, durationB, dfreqB, samplingtimeB,powerB],
+                            [afterB_val, durationB_val, dfreqB_val, samplingtimeB_val,powerB_val]),
+                       dfreqB_val.width == afterB_val.width,
+                       afterB_val.width == durationB_val.width,
+                       powerB_val.width == dfreq_val.width/2]
+        Label: dfreqB:
+            text = 'Frequency (MHz)'
+        Field: dfreqB_val:
+            text := task.demod_freq_B
+            tool_tip = fill(cleandoc(
+                            '''Separate the demodulation frequencies with commas or enter a Python formula.
+                            — You can specify a unique demodulation frequency if it's the same for every demodulation.'''))
+
+        Label: afterB:
+            text = 'Start time after trigger (ns)'
+        Field: afterB_val:
+            text := task.demod_start_B
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example: 0,500,1000 or np.linspace(0,1000,3)'''))
+
+        Label: durationB:
+            text = 'Duration (ns)'
+        Field: durationB_val:
+            text := task.demod_duration_B
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Demodulation
+                            on channel B will be disabled if one of the durations is set to zero.
+                            — Note that data acquisition by channel B will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel A speed.'''))
+
+        Label: samplingtimeB:
+            text = 'IQ time step (ns)'
+        Field: samplingtimeB_val:
+            text := task.timesteps_B
+            tool_tip = fill(cleandoc(
+                            '''Acquire the IQ values with temporal resolution.
+                            Separate the time steps with commas or enter a Python formula.
+                            — You can specify a unique time step if it's the same for every demodulation.
+                            — 0 corresponds to one IQ per trace.'''))
+        Label: powerB:
+            text = 'Power'
+        CheckBox: powerB_val:
+            checked := task.power_B
+
+    GroupBox: traceA:
+        title = 'Channel A raw trace record settings'
+        constraints = [grid([traceafter, traceduration],
+                            [traceafter_val, traceduration_val]),
+                       traceafter_val.width == traceduration_val.width]
+
+        Label: traceafter:
+            text = 'Start time after trigger (ns)'
+        Field: traceafter_val:
+            text := task.trace_start_A
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example: 0,500,1000 or np.linspace(0,1000,3)'''))
+
+        Label: traceduration:
+            text = 'Duration (ns)'
+        Field: traceduration_val:
+            text := task.trace_duration_A
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Trace record
+                            on channel A will be disabled if one of the
+                            durations is set to zero.
+                            ---- Note that data acquisition by channel A will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel B speed.'''))
+    GroupBox: traceB:
+        title = 'Channel B raw trace record settings'
+        constraints = [grid([traceafterB, tracedurationB],
+                            [traceafterB_val, tracedurationB_val]),
+                       traceafterB_val.width == tracedurationB_val.width]
+
+        Label: traceafterB:
+            text = 'Start time after trigger (ns)'
+        Field: traceafterB_val:
+            text := task.trace_start_B
+            tool_tip = fill(cleandoc('''Separate the start times with commas or enter a Python formula.
+                                        For example: 0,500,1000 or np.linspace(0,1000,3)'''))
+
+        Label: tracedurationB:
+            text = 'Duration (ns)'
+        Field: tracedurationB_val:
+            text := task.trace_duration_B
+            tool_tip = fill(cleandoc(
+                            '''Separate the durations with commas or enter a Python formula. Trace record
+                            on channel B will be disabled if one of the
+                            durations is set to zero.
+                            ---- Note that data acquisition by channel B will be
+                            disabled if demodulation and trace record are both
+                            disabled on this channel. This improves channel A speed.'''))
+    GroupBox: customDemod:
+        title = 'Custom demodulation functions'
+
+        Label: customDemodCos:
+            text = 'Custom "cos" function used for the demodulation'
+        Field: customDemodCos_val:
+            text := task.custom_demod_cos
+            tool_tip = fill(cleandoc('''numpy.ndarray containing the function
+                                     that will be used for the demodulation instead of cos().
+                                     If empty, demodulation will use cos().'''))
+
+        Label: customDemodSin:
+            text = 'Custom "sin" function used for the demodulation'
+        Field: customDemodSin_val:
+            text := task.custom_demod_sin
+            tool_tip = fill(cleandoc('''numpy.ndarray containing the function
+                                     that will be used for the demodulation instead of sin().
+                                     If empty, demodulation will use sin().'''))
+                                     
+
+enamldef ITeledyneSamplingLabel(Label):
+    attr root
+    attr interface
+    
+    text = 'Sampling frequency (MHz)'
+
+
+enamldef ITeledyneSamplingValue(ObjectCombo):
+    attr root
+    attr interface
+
+    items << list(interface.get_member('sampling_freq').items)
+    selected := interface.sampling_freq
