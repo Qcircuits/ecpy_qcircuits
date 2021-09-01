@@ -114,18 +114,16 @@ class SmartSaveTask(SimpleTask):
                             data_shape = tuple(self._dims) + value[m].shape
                             data_group.create_dataset(label + '_' + m,
                                              data_shape,
-                                             self.datatype,
-                                             compression="gzip")
+                                             self.datatype)
                     else:
                         data_shape = tuple(self._dims) + value.shape
                         data_group.create_dataset(label,
                                          data_shape,
-                                         self.datatype,
-                                         compression="gzip")
+                                         self.datatype)
                 else:
                     data_shape = tuple(self._dims)
                     data_group.create_dataset(label, data_shape,
-                                     self.datatype, compression="gzip")
+                                     self.datatype)
             f.attrs['header'] = self.format_string(self.header)
             f.attrs['count_calls'] = 0
             f.swmr_mode = True
