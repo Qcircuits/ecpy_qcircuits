@@ -60,6 +60,16 @@ enamldef QcircuitsManifest(PluginManifest):
                                        'VisaTCPIP': {'resource_class': 'INSTR'}
                                        }
                 Drivers:
+                    manufacturer = 'Keysight'
+                    Driver:
+                        driver = 'keysight_voltage_source:E3631A'
+                        model = 'E3631A'
+                        connections = {'VisaGPIB': {'resource_class': 'INSTR'},
+                                       'VisaUSB': {'resource_class': 'INSTR'},
+                                       'VisaTCPIP': {'resource_class': 'INSTR'},
+                                       'VisaRaw' :{}
+                                       }
+                Drivers:
                     manufacturer = 'Rohde and Schwarz'
                     Driver:
                         driver = 'rohde_and_schwarz_psa:RohdeAndSchwarzPSA'
@@ -137,12 +147,22 @@ enamldef QcircuitsManifest(PluginManifest):
             Task:
                 task = 'exopy_hqc_legacy.SetDCVoltageTask'
                 instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+                Interface:
+                    interface = 'exopy_qcircuits.tasks.tasks.instr.keysight_voltage_source_tasks:E3631AInterface'
+                    views=['exopy_qcircuits.tasks.tasks.instr.views.keysight_voltage_source_views:IE3631AChannelLabel',
+                           'exopy_qcircuits.tasks.tasks.instr.views.keysight_voltage_source_views:IE3631AChannelCombo']
+                    instruments = ['exopy_qcircuits.Qcircuits.E3631A']
             Task:
                 task = 'exopy_hqc_legacy.SetDCCurrentTask'
                 instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+                Interface:
+                    interface = 'exopy_qcircuits.tasks.tasks.instr.keysight_voltage_source_tasks:E3631AInterface'
+                    views=['exopy_qcircuits.tasks.tasks.instr.views.keysight_voltage_source_views:IE3631AChannelLabel',
+                           'exopy_qcircuits.tasks.tasks.instr.views.keysight_voltage_source_views:IE3631AChannelCombo']
+                    instruments = ['exopy_qcircuits.Qcircuits.E3631A']
             Task:
                 task = 'exopy_hqc_legacy.SetDCOutputTask'
-                instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+                instruments = ['exopy_qcircuits.Qcircuits.Tenma', 'exopy_qcircuits.Qcircuits.E3631A']
 
         Tasks:
             path = 'exopy_qcircuits.tasks.tasks'
