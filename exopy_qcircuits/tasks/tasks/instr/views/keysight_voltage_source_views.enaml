@@ -1,0 +1,15 @@
+from enaml.widgets.api import (Label, ObjectCombo)
+
+
+enamldef IE3631AChannelLabel(Label):
+    attr root
+    attr interface
+    
+    text = 'Channel'
+
+enamldef IE3631AChannelCombo(ObjectCombo):
+    attr root
+    attr interface
+
+    items = ['P6V', 'P25V', 'N25V']
+    selected := interface.channel
