@@ -88,6 +88,11 @@ enamldef QcircuitsManifest(PluginManifest):
                     model = 'LMS103'
                     kind = 'RF source'
                 Driver:
+                    driver = 'prototx:ProtoTx'
+                    manufacturer = 'Polyphase'
+                    model = 'ProtoTx'
+                    kind = 'RF source'                    
+                Driver:
                     driver = 'teledyneADQ32:TeledyneADQ32'
                     manufacturer = 'Teledyne SP Devices'
                     model = 'ADQ32'
@@ -143,6 +148,17 @@ enamldef QcircuitsManifest(PluginManifest):
             Task:
                 task = 'exopy_hqc_legacy.SetDCOutputTask'
                 instruments = ['exopy_qcircuits.Qcircuits.Tenma']
+            Task:
+                task = 'exopy_hqc_legacy.SetRFFrequencyTask'
+                instruments = ['exopy_qcircuits.Qcircuits.ProtoTx']
+            Task:
+                task = 'exopy_hqc_legacy.SetRFPowerTask'
+                instruments = ['exopy_qcircuits.Qcircuits.ProtoTx']
+            Task:
+                task = 'exopy_hqc_legacy.SetRFOnOffTask'
+                instruments = ['exopy_qcircuits.Qcircuits.ProtoTx']
+
+
 
         Tasks:
             path = 'exopy_qcircuits.tasks.tasks'
@@ -291,6 +307,17 @@ enamldef QcircuitsManifest(PluginManifest):
                                  'views.ena_views:IPNAPortLabel',
                                  'views.ena_views:IPNAPortValue']
                         instruments = ['exopy_qcircuits.Qcircuits.KeysightENA']
+
+                Task:
+                    task = 'protoTx_tasks:protoTxConfigurationTask'
+                    view = 'views.protoTx_views:protoTxConfigurationView'
+                    instruments = ['exopy_qcircuits.Qcircuits.ProtoTx']
+
+                Task:
+                    task = 'protoTx_tasks:protoTxSetRFAttenuationTask'
+                    view = 'views.protoTx_views:protoTxSetRFAttenuationView'
+                    instruments = ['exopy_qcircuits.Qcircuits.ProtoTx']
+
             Tasks:
                 path = 'util'
                 group = 'util'

@@ -1,0 +1,94 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# Copyright 2022 by exopyHqcLegacy Authors, see AUTHORS for more details.
+#
+# Distributed under the terms of the BSD license.
+#
+# The full license is in the file LICENCE, distributed with this software.
+# -----------------------------------------------------------------------------
+"""Views for the protoTx tasks.
+
+"""
+
+import re
+from textwrap import fill
+
+from atom.api import set_default, Value, observe
+from enaml.core.api import Conditional
+from enaml.layout.api import grid, vbox, hbox, factory, align, spacer
+from enaml.widgets.api import (GroupBox, Label, Field, ObjectCombo, Container,
+                               CheckBox)
+from enaml.stdlib.fields import IntField, FloatField
+from enaml.validator import Validator
+
+from exopy.tasks.api import EVALUATER_TOOLTIP
+from exopy.utils.widgets.qt_completers import QtLineCompleter
+from exopy_hqc_legacy.utils.layouts import auto_grid_layout
+from exopy_hqc_legacy.utils.widgets.pair_editor import PairEditor
+from ...base_instr_view import InstrView
+        
+    
+enamldef protoTxConfigurationView(InstrView): view:
+    constraints = [vbox(
+                    hbox(instr_label, I_off_label, Q_off_label, spacer, LO_null_label, spacer, op_mode_label, LO_source_label, ref_source_label, spacer),
+                    hbox(instr_selection, I_off_field, Q_off_field, spacer, LO_null_check, spacer, op_mode_val, LO_source_val, ref_source_val, spacer)),
+                    I_off_field.width == Q_off_field.width, 
+                    align('left', instr_label, instr_selection), 
+                    align('left', I_off_label, I_off_field),
+                    align('left', Q_off_label, Q_off_field),
+                    align('left', op_mode_label, op_mode_val), 
+                    align('left', LO_source_label, LO_source_val),
+                    align('left', ref_source_label, ref_source_val)
+                    ]
+
+    Label: I_off_label:
+        text = 'I offset (0-255)'
+    Label: Q_off_label:
+        text = 'Q offset (0-255)'
+    Label: LO_null_label:
+        text = 'LO manual offset'
+    Label: op_mode_label:
+        text = 'Operating mode'
+    Label: LO_source_label:
+        text = 'LO source'
+    Label: ref_source_label:
+        text = 'Reference source'
+
+    IntField: I_off_field:
+        text := task.I_offset
+        tool_tip = fill("The offset for I")
+    
+    IntField: Q_off_field:
+        text := task.Q_offset
+        tool_tip = fill("The offset for Q")
+
+    CheckBox: LO_null_check:
+        checked := task.lo_nulling
+
+    ObjectCombo: op_mode_val:
+        items = list(task.get_member('operating_mode').items)
+        selected := task.operating_mode
+
+    ObjectCombo: LO_source_val:
+        items = list(task.get_member('lo_source').items)
+        selected := task.lo_source
+
+    ObjectCombo: ref_source_val:
+        items = list(task.get_member('reference_source').items)
+        selected := task.reference_source
+
+
+enamldef protoTxSetRFAttenuationView(InstrView): view:
+    constraints = [vbox(
+                    hbox(instr_label, RF_attenuation_label, spacer),
+                    hbox(instr_selection, RF_attenuation_field, spacer)),
+                    align('left', instr_label, instr_selection), 
+                    align('left', RF_attenuation_label, RF_attenuation_field)
+                    ]
+
+    Label: RF_attenuation_label:
+        text = 'RF attenuation (0.0-31.75)'
+
+    FloatField: RF_attenuation_field:
+        text := task.rf_attenuation
+        tool_tip = fill("The output RF attenuation")
