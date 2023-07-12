@@ -16,7 +16,7 @@ from inspect import cleandoc
 import numpy as np
 
 try:
-    from visa import ascii, single, double
+    from pyvisa import ascii, single, double
 except ImportError:
     ascii = 2
     single = 1
