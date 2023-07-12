@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from ..driver_tools import (BaseInstrument, InstrIOError, secure_communication,
                             instrument_property)
 from ..visa_tools import VisaInstrument
-from visa import VisaTypeError
+from pyvisa import VisaTypeError
 from textwrap import fill
 from inspect import cleandoc
 import re
