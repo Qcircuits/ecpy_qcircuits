@@ -98,8 +98,8 @@ class KeysightENAChannel(BaseInstrument):
         else:
             data = self._pna.query_ascii_values(data_request)
 
-        if data:
-            return np.array(data)
+        if data.size:
+            return data
         else:
             raise InstrIOError(cleandoc('''Agilent PNA did not return the
                 channel {} formatted data for meas {}'''.format(
@@ -132,9 +132,8 @@ class KeysightENAChannel(BaseInstrument):
         else:
             data = self._pna.query_ascii_values(data_request)
 
-        if data:
-            aux = np.array(data)
-            return aux[::2] + 1j*aux[1::2]
+        if data.size:
+            return data[::2] + 1j*data[1::2]
         else:
             raise InstrIOError(cleandoc('''Keysight ENA did not return the
                 channel {} formatted data for trace {}'''.format(
