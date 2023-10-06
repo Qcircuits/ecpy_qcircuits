@@ -548,7 +548,7 @@ class KeysightENAChannel(BaseInstrument):
         """
         """
         self._pna.write('SENSe{}:SWEep:MODE {}'.format(self._channel, value))
-        result = self._pna.query('SENSe{}:SWEep:MODE?'.format(self._channel))
+        result = self._pna.query('SENSe{}:SWEep:MODE?'.format(self._channel)).rstrip('\n')
 
         if result.lower() != value.lower()[:len(result)]:
             raise InstrIOError(cleandoc('''PNA did not set correctly the
@@ -572,7 +572,7 @@ class KeysightENAChannel(BaseInstrument):
         """
         """
         self._pna.write('SENSe{}:SWEep:TYPE {}'.format(self._channel, value))
-        result = self._pna.query('SENSe{}:SWEep:TYPE?'.format(self._channel))
+        result = self._pna.query('SENSe{}:SWEep:TYPE?'.format(self._channel)).rstrip('\n')
 
         if result.lower() != value.lower()[:len(result)]:
             raise InstrIOError(cleandoc('''PNA did not set correctly the
@@ -703,7 +703,7 @@ class KeysightENAChannel(BaseInstrument):
         """
         """
         self._pna.write('SENSe{}:AVERage:MODE {}'.format(self._channel, value))
-        result = self._pna.query('SENSe{}:AVERage:MODE?'.format(self._channel))
+        result = self._pna.query('SENSe{}:AVERage:MODE?'.format(self._channel)).rstrip('\n')
 
         if result.lower() != value.lower()[:len(result)]:
             raise InstrIOError(cleandoc('''PNA did not set correctly the
@@ -790,16 +790,17 @@ class KeysightENA(VisaInstrument):
     def set_all_chanel_to_hold(self):
         """
         """
-        for channel in self.defined_channels:
-            self.write('SENSe{}:SWEep:MODE HOLD'.format(channel))
-
-        for channel in self.defined_channels:
-            result = self.query('SENSe{}:SWEep:MODE?'.format(channel))
-
-            if result != 'HOLD':
-                raise InstrIOError(cleandoc('''PNA did not set correctly the
-                    channel {} sweep mode while setting all defined channels
-                    to HOLD'''.format(channel)))
+        self.write('ABORt')
+        #for channel in self.defined_channels:
+        #    self.write('SENSe{}:SWEep:MODE HOLD'.format(channel))
+        #
+        #for channel in self.defined_channels:
+        #    result = self.query('SENSe{}:SWEep:MODE?'.format(channel))
+        #
+        #    if result != 'HOLD':
+        #        raise InstrIOError(cleandoc('''PNA did not set correctly the
+        #            channel {} sweep mode while setting all defined channels
+        #            to HOLD'''.format(channel)))
 
     @secure_communication()
     def clear_averaging(self):
@@ -853,7 +854,7 @@ class KeysightENA(VisaInstrument):
         """
         """
         self.write('TRIGger:SEQuence:SCOPe {}'.format(value))
-        result = self.query('TRIGger:SEQuence:SCOPe?')
+        result = self.query('TRIGger:SEQuence:SCOPe?').rstrip('\n')
 
         if result.lower() != value.lower()[:len(result)]:
             raise InstrIOError(cleandoc('''PNA did not set correctly the
@@ -877,7 +878,7 @@ class KeysightENA(VisaInstrument):
         """
         """
         self.write('TRIGger:SEQuence:SOURce {}'.format(value))
-        result = self.query('TRIGger:SEQuence:SOURce?')
+        result = self.query('TRIGger:SEQuence:SOURce?').rstrip('\n')
 
         if result.lower() != value.lower()[:len(result)]:
             raise InstrIOError(cleandoc('''PNA did not set correctly the

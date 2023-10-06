@@ -189,13 +189,14 @@ class ENASweepTask(SingleChannelPNATask):
         """
         if not self.driver:
             self.start_driver()
-            self.channel_driver = self.driver.get_channel(self.channel)
+
+        if not self.channel_driver:
             self.channel_driver = self.driver.get_channel(self.channel)
 
         if self.driver.owner != self.name:
             self.driver.owner = self.name
             self.driver.set_all_chanel_to_hold()
-            self.driver.trigger_scope = 'CURRent'
+            self.driver.trigger_scope = 'ACTive'
             self.driver.trigger_source = 'MANual'
 
         meas_names = ['Ch{}:'.format(self.channel) + ':'.join(measure)
@@ -206,19 +207,19 @@ class ENASweepTask(SingleChannelPNATask):
             if self.if_bandwidth>0:
                 self.channel_driver.if_bandwidth = self.if_bandwidth
 
-            # Check whether or not we are doing the same measures as the ones
-            # already defined (avoid losing display optimisation)
-            measures = self.channel_driver.list_existing_measures()
-            existing_meas = [meas['name'] for meas in measures]
-
-            if not (all([meas in existing_meas for meas in meas_names])
-                    and all([meas in meas_names for meas in existing_meas])):
-                clear = True
-                self.channel_driver.delete_all_meas()
-                for i, meas_name in enumerate(meas_names):
-                    self.channel_driver.prepare_measure(meas_name, self.window,
-                                                        i+1, clear)
-                    clear = False
+            ## Check whether or not we are doing the same measures as the ones
+            ## already defined (avoid losing display optimisation)
+            #measures = self.channel_driver.list_existing_measures()
+            #existing_meas = [meas['name'] for meas in measures]
+            #
+            #if not (all([meas in existing_meas for meas in meas_names])
+            #        and all([meas in meas_names for meas in existing_meas])):
+            #    clear = True
+            #    self.channel_driver.delete_all_meas()
+            #    for i, meas_name in enumerate(meas_names):
+            #        self.channel_driver.prepare_measure(meas_name, self.window,
+            #                                            i+1, clear)
+            #         clear = False
         current_Xaxis = self.channel_driver.sweep_x_axis
         if self.start:
             start = self.format_and_eval_string(self.start)
