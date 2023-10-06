@@ -334,7 +334,7 @@ class KeysightENAChannel(BaseInstrument):
             self._pna.write('SENSe{}:FREQuency:STOP {}'.format(self._channel,
                                                                stop))
         elif sweep_type == 'POWER':
-            self.sweep_type = 'POW'
+            self.sweep_type = 'LIN'
             self.sweep_points = sweep_points
             self._pna.write('SOURce{}:POWer:STARt {}'.format(self._channel,
                                                              start))
