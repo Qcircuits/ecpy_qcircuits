@@ -219,7 +219,7 @@ class ENASweepTask(SingleChannelPNATask):
             #    for i, meas_name in enumerate(meas_names):
             #        self.channel_driver.prepare_measure(meas_name, self.window,
             #                                            i+1, clear)
-            #         clear = False
+            #        clear = False
         current_Xaxis = self.channel_driver.sweep_x_axis
         if self.start:
             start = self.format_and_eval_string(self.start)
