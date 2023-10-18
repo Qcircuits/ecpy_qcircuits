@@ -108,6 +108,7 @@ class PNASetRFPowerInterface(TaskInterface):
         task = self.task
         if not task.driver:
             task.start_driver()
+        if not self.channel_driver:
             self.channel_driver = task.driver.get_channel(self.channel)
 
         task.driver.owner = task.name
